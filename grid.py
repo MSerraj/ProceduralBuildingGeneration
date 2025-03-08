@@ -2,10 +2,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import random
 import enum
-
+import copy
 from enum import Enum
 
-from enum import Enum
 
 class Wall(Enum):
     # Segments
@@ -56,6 +55,12 @@ class Wall(Enum):
 
     def __str__(self):
         return f"{self.name}({self.value}, {self.ins})"
+    
+    def copy(self):
+        """Copies self with deepcopy as well to avoid shared references"""
+        new_copy = Wall(self.value)
+        new_copy.ins = copy.deepcopy(self.ins)
+        return new_copy
 
 
 
