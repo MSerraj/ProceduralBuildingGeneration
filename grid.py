@@ -7,8 +7,10 @@ from enum import Enum
 
 
 class Wall(Enum):
-    # Segments
+    # Floor
     EMPTY = 0 
+    INSIDE = 17
+    # Segments
     UP = 1 
     RIGHT = 2
     DOWN = 4
@@ -50,7 +52,8 @@ class Wall(Enum):
                 14: [[0, 0, 0], [1, 1, 1], [0, 1, 0]],
                 13: [[0, 1, 0], [1, 1, 0], [0, 1, 0]],
                 7: [[0, 1, 0], [0, 1, 1], [0, 1, 0]],
-                15: [[0, 1, 0], [1, 1, 1], [0, 1, 0]],}
+                15: [[0, 1, 0], [1, 1, 1], [0, 1, 0]],
+                17: [[0, 0, 0], [0, 0, 0], [0, 0, 0]],}
         return grids.get(value)
 
     def __str__(self):
@@ -63,7 +66,35 @@ class Wall(Enum):
         return new_copy
 
 
-
-class grid:
-    def __init__(self, size=(10,10)):
-        self.size = size
+class Building:
+    def __init__(self, base_floor):
+        self.floors = [np.array(base_floor, dtype=int)]
+        self.floor_h = 3  # meters
+    
+    def add_floor(self, new_floor):
+        new_floor = np.array(new_floor, dtype=int)
+        
+        if new_floor.shape != self.floors[0].shape:# Check floor dimensions match
+            raise ValueError("Floor dimensions don't make sense")
+            
+        if len(self.floors) > 0:# Check if new floor fits within previous floor's walls
+            prev_floor = self.floors[-1]
+            
+            ext_mask = np.zeros_like(new_floor, dtype=bool)# Only validate exterior walls (edges of the grid)
+            ext_mask[0, :] = True
+            ext_mask[-1, :] = True   # Top edge, Bottom edge
+            ext_mask[:, 0] = True 
+            ext_mask[:, -1] = True   # Left edge, Right edge
+            
+            ext_new = new_floor[ext_mask]# Check exterior walls
+            ext_prev = prev_floor[ext_mask]
+            valid = np.all(ext_new <= ext_prev)
+            
+            if not valid:
+                raise ValueError("New floor exceeds the one under")
+        
+        self.floors.append(new_floor)
+        return self
+    
+    def height_tot(self):
+        return len(self.floors) * self.floor_h
