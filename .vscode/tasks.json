@@ -1,0 +1,17 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "conda-activate",
+            "type": "shell",
+            "command": "conda activate SEMPRO",
+            "problemMatcher": [],
+            "options": {
+                "shell": {
+                    "executable": "cmd.exe", 
+                    "args": ["/K", "conda activate SEMPRO && "]
+                }
+            }
+        }
+    ]
+}
