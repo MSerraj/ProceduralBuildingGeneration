@@ -65,8 +65,5 @@ class Wall(Enum):
         new_copy.ins = copy.deepcopy(self.ins)
         return new_copy
 
-
-
-    
     def height_tot(self):
         return len(self.floors) * self.floor_h
