@@ -1,6 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from utils import (plot_floorplan, region_growing_simultaneous,
+from utils import (plot_floorplan, visualize_grid, region_growing_simultaneous,
                    build_wall, generate_mapping_rectangles, find_rooms,
                    int_to_color, place_stairwell, find_optimal_corridor_tree)
 
@@ -55,11 +55,11 @@ class FloorPlan:
         """
         self.grid = place_stairwell(self.grid, x, y)
 
-    def generate_corridors(self):
+    def generate_corridors(self, min_width=4):
         """ 
         Generate corridors and widen them
         """
-        self.grid = find_optimal_corridor_tree(self.grid)
+        self.grid = find_optimal_corridor_tree(self.grid, min_width = min_width)
     
     def color_coded(self):
         """
@@ -75,22 +75,5 @@ class FloorPlan:
         """
         plot_floorplan(self.color_coded(), seed_coordinates=self.seeds, save=False)
 
-# Example usage:
-if __name__ == "__main__":
-    # Create a dummy grid: 0 outside, 1 wall, 255 unassigned.
-    grid = np.full((50, 50), 255, dtype=int)
-    grid[0, :] = grid[-1, :] = 1
-    grid[:, 0] = grid[:, -1] = 1
-
-    # Initialize floor plan and add a few seeds
-    seeds = [(10, 10, 128), (10, 30, 129), (30, 10, 130)]
-    fp = FloorPlan(grid)
-    fp.grow_regions(seeds)
-    
-    # Optionally generate mapping rectangles, fill rooms and refine walls
-    fp.generate_mapping_rectangles()
-    fp.fill_rooms()
-    fp.refine_walls()
-    
-    # Display the result
-    fp.show()
+    def visualize(self):
+        visualize_grid(self.grid, figsize=(16, 10), dpi=120, title="Floor Plan Visualization")

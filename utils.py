@@ -102,8 +102,106 @@ def plot_floorplan(output_array, seed_coordinates=None, save=False):
 
     plt.close()  # Close the figure to free up memory
 
+import matplotlib.pyplot as plt
+from matplotlib.patches import Patch
+from matplotlib.colors import ListedColormap
+from matplotlib import rcParams
 
+def visualize_grid(result, figsize=(16, 10), dpi=120, title="Floor Plan Visualization"):
+    """
+    Creates a luxury-style visualization with compact, elegant legend placement
+    and premium aesthetic touches.
+    """
+    # Create color-coded grid
+    color_grid = int_to_color(result)
+    
+    # Configure premium styling
+    plt.style.use('seaborn-v0_8-whitegrid')
+    plt.rcParams.update({
+        'font.family': 'Roboto',
+        'axes.titlesize': 26,
+        'axes.titleweight': 'medium',
+        'axes.labelcolor': '#404040',
+        'xtick.labelsize': 12,
+        'ytick.labelsize': 12,
+        'legend.title_fontsize': 13,
+        'legend.fontsize': 11
+    })
 
+    # Create figure with custom layout
+    fig, ax = plt.subplots(figsize=figsize, dpi=dpi, facecolor='#f8f9fa')
+    fig.suptitle(title, y=0.97, fontsize=28, fontweight='medium', 
+                color='#2b2b2b', fontfamily='DejaVu Sans')
+
+    # Main image display
+    im = ax.imshow(color_grid, interpolation='nearest', aspect='equal')
+    
+    # Grid customization
+    ax.set_xticks(np.arange(-.5, result.shape[1], 1), minor=True)
+    ax.set_yticks(np.arange(-.5, result.shape[0], 1), minor=True)
+    ax.grid(which='minor', color='#e0e0e0', linestyle=':', linewidth=0.8)
+    ax.tick_params(which='both', length=0)
+    ax.set_facecolor('#ffffff')
+
+    # Legend elements with compact labels
+    legend_elements = [
+        Patch(facecolor='#000000', edgecolor='#606060', linewidth=0.5, label='Walls'),
+        Patch(facecolor='#285151', label='Structure'),
+        Patch(facecolor='#b4b4b4', label='Separator'),
+        Patch(facecolor='#804040', label='Escalators'),
+        Patch(facecolor='#800040', label='Corridors'),
+        Patch(facecolor='#ed1c24', label='Seed 1'),
+        Patch(facecolor='#00a2e8', label='Seed 2'),
+        Patch(facecolor='#22b14c', label='Seed 3'),
+        Patch(facecolor='#a349a4', label='Seed 4'),
+        Patch(facecolor='#ff7f27', label='Seed 5'),
+        Patch(facecolor='#fff200', label='Seed 6'),
+        Patch(facecolor='#ffc0cb', label='Unassigned')
+    ]
+
+    # Luxury-styled floating legend
+    legend = ax.legend(
+        handles=legend_elements,
+        loc='upper left',
+        bbox_to_anchor=(1.02, 1),
+        ncol=1,
+        frameon=True,
+        framealpha=0.96,
+        facecolor='#ffffff',
+        edgecolor='#d0d0d0',
+        borderaxespad=0.5,
+        title="LEGEND",
+        title_fontproperties={'weight': 'medium', 'size': 12},
+        labelspacing=0.8,
+        handlelength=1.5,
+        handleheight=1.2,
+        handletextpad=0.5,
+        borderpad=0.8
+    )
+    
+    # Add subtle shadow effect to legend
+    legend.get_frame().set_linewidth(0)
+    legend.get_frame().set_boxstyle("round,pad=0.2,rounding_size=0.3")
+    legend.get_frame().set_edgecolor('#c0c0c080')
+    legend.get_frame().set_alpha(0.98)
+
+    # Clean axis presentation
+    ax.set_xlabel("X Coordinate", fontsize=14, labelpad=12, color='#606060')
+    ax.set_ylabel("Y Coordinate", fontsize=14, labelpad=12, color='#606060')
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+    # Add premium border effect
+    for spine in ax.spines.values():
+        spine.set_visible(True)
+        spine.set_edgecolor('#d0d0d0')
+        spine.set_linewidth(1.2)
+
+    # Final layout tuning
+    plt.tight_layout(rect=[0, 0, 0.85, 0.97])
+    fig.subplots_adjust(right=0.82)
+    
+    return fig, ax
 from collections import deque
 import numpy as np
 
@@ -276,7 +374,7 @@ def generate_mapping_rectangles(grid, rooms=(128, 129, 130, 132, 136, 144)):
         grid = build_wall(grid, (x1, y2), (x2, y2))  # Bottom wall
         grid = build_wall(grid, (x1, y1), (x1, y2))  # Left wall
         grid = build_wall(grid, (x2, y1), (x2, y2))  # Right wall
-
+    plot_floorplan(int_to_color(grid), save=False)
     grid = fill_rooms_with_dominant_color(grid)
     grid = replace_walls(grid)
     grid = replace_walls(grid)
@@ -774,7 +872,7 @@ def find_room_boundaries(grid, room_value, skeleton):
                     bounds.add((ny, nx))
     return list(bounds)
 
-def find_optimal_corridor_tree(grid):
+def find_optimal_corridor_tree(grid,min_width = 4):
     """
     Constructs a minimal corridor tree (corridor pixels marked as 21)
     that connects the stairwell (20) to all rooms (all values except 0,1,18,19,20,21).
@@ -841,7 +939,7 @@ def find_optimal_corridor_tree(grid):
         grid[y, x] = 21
 
 
-    return widen_corridors(grid)
+    return widen_corridors(grid, min_width = min_width)
 
 def widen_corridors(grid, val = 21, min_width = 4):
     """ 
@@ -850,7 +948,7 @@ def widen_corridors(grid, val = 21, min_width = 4):
     corridor_mask = (grid==val)
     valid_mask = (grid != 0)
 
-    iterations = (min_width) // 2
+    iterations = (min_width -1 ) // 2
 
     kernel = [(-1, -1), (-1, 0), (-1, 1),
               ( 0, -1),          ( 0, 1),
@@ -858,8 +956,9 @@ def widen_corridors(grid, val = 21, min_width = 4):
     
     for _ in range(iterations):
         expansion = np.zeros_like(corridor_mask)
+        padded = np.pad(corridor_mask, pad_width=1, mode='constant', constant_values=0)
         for dy, dx in kernel:
-            shifted = np.roll(corridor_mask, shift = (dy, dx), axis = (0,1 ))
+            shifted = np.roll(corridor_mask, shift = (dy, dx), axis = (0,1))
             expansion |= shifted
 
         expansion &= valid_mask

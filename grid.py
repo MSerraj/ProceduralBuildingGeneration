@@ -55,6 +55,10 @@ class Wall(Enum):
                 15: [[0, 1, 0], [1, 1, 1], [0, 1, 0]],
                 17: [[0, 0, 0], [0, 0, 0], [0, 0, 0]],}
         return grids.get(value)
+    
+    def convert_grid(self, int_graph):
+        x, y = int_graph
+        
 
     def __str__(self):
         return f"{self.name}({self.value}, {self.ins})"
