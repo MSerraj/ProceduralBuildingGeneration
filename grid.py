@@ -53,12 +53,43 @@ class Wall(Enum):
                 13: [[0, 1, 0], [1, 1, 0], [0, 1, 0]],
                 7: [[0, 1, 0], [0, 1, 1], [0, 1, 0]],
                 15: [[0, 1, 0], [1, 1, 1], [0, 1, 0]],
+                16: [[0, 0, 0], [0, 1, 0], [0, 0, 0]],  # Single central pixel
                 17: [[0, 0, 0], [0, 0, 0], [0, 0, 0]],}
         return grids.get(value)
-    
-    def convert_grid(self, int_graph):
-        x, y = int_graph
+    @staticmethod  
+    def convert_to_3x3(grid):
+        rows = len(grid)
+        cols = len(grid[0]) if rows else 0
+        new_grid = copy.deepcopy(grid)
         
+        for i in range(rows):
+            for j in range(cols):
+                cell_value = grid[i][j]
+                if cell_value in {1, 18, 19}:
+                    # Calculate bitmask using grid context
+                    bitmask = 0
+                    
+                    if i > 0 and grid[i-1][j] in {1, 18, 19}: # up
+                        bitmask += 1
+                    if j < cols-1 and grid[i][j+1] in {1, 18, 19}: # right
+                        bitmask += 2
+                    if i < rows-1 and grid[i+1][j] in {1, 18, 19}: # down
+                        bitmask += 4
+                    if j > 0 and grid[i][j-1] in {1, 18, 19}: # left
+                        bitmask += 8
+
+                    # Find matching wall type
+                    wall_type = next((w for w in Wall if w.value == bitmask), Wall.EMPTY)
+                elif cell_value == 0:
+                    wall_type = Wall.EMPTY
+                elif cell_value == 17:
+                    wall_type = Wall.INSIDE
+                else:
+                    wall_type = Wall.EMPTY
+
+                new_grid[i][j] = wall_type
+    
+        return new_grid
 
     def __str__(self):
         return f"{self.name}({self.value}, {self.ins})"

@@ -1,0 +1,58 @@
+<svg width="70" height="70" 
+    xmlns="http://www.w3.org/2000/svg">
+    <rect width="100%" height="100%" fill="#FFFFFF"/>
+    <rect x="20.00" y="20.00" width="10.00" height="10.00" fill="#566573" stroke-width="0.5" stroke="#000"/>
+<rect x="30.00" y="20.00" width="10.00" height="10.00" fill="#566573" stroke-width="0.5" stroke="#000"/>
+<rect x="20.00" y="30.00" width="10.00" height="10.00" fill="#566573" stroke-width="0.5" stroke="#000"/>
+<rect x="20.00" y="20.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="30.00" y="20.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="40.00" y="20.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="30.00" y="20.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="40.00" y="20.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="50.00" y="20.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="40.00" y="20.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="50.00" y="20.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="60.00" y="20.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="50.00" y="20.00" width="10.00" height="10.00" fill="#566573" stroke-width="0.5" stroke="#000"/>
+<rect x="60.00" y="20.00" width="10.00" height="10.00" fill="#566573" stroke-width="0.5" stroke="#000"/>
+<rect x="60.00" y="30.00" width="10.00" height="10.00" fill="#566573" stroke-width="0.5" stroke="#000"/>
+<rect x="20.00" y="20.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="20.00" y="30.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="20.00" y="40.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="60.00" y="20.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="60.00" y="30.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="60.00" y="40.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="20.00" y="30.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="20.00" y="40.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="20.00" y="50.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="40.00" y="40.00" width="10.00" height="10.00" fill="#2E4053" stroke-width="0.5" stroke="#000"/>
+<rect x="40.00" y="50.00" width="10.00" height="10.00" fill="#2E4053" stroke-width="0.5" stroke="#000"/>
+<rect x="60.00" y="30.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="60.00" y="40.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="60.00" y="50.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="20.00" y="40.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="20.00" y="50.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="20.00" y="60.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="40.00" y="40.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="40.00" y="50.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="40.00" y="60.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="60.00" y="40.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="60.00" y="50.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="60.00" y="60.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="20.00" y="50.00" width="10.00" height="10.00" fill="#566573" stroke-width="0.5" stroke="#000"/>
+<rect x="20.00" y="60.00" width="10.00" height="10.00" fill="#566573" stroke-width="0.5" stroke="#000"/>
+<rect x="30.00" y="60.00" width="10.00" height="10.00" fill="#566573" stroke-width="0.5" stroke="#000"/>
+<rect x="20.00" y="60.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="30.00" y="60.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="40.00" y="60.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="40.00" y="50.00" width="10.00" height="10.00" fill="#34495E" stroke-width="0.5" stroke="#000"/>
+<rect x="30.00" y="60.00" width="10.00" height="10.00" fill="#34495E" stroke-width="0.5" stroke="#000"/>
+<rect x="40.00" y="60.00" width="10.00" height="10.00" fill="#34495E" stroke-width="0.5" stroke="#000"/>
+<rect x="50.00" y="60.00" width="10.00" height="10.00" fill="#34495E" stroke-width="0.5" stroke="#000"/>
+<rect x="40.00" y="60.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="50.00" y="60.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="60.00" y="60.00" width="10.00" height="10.00" fill="#1B2631" stroke-width="0.5" stroke="#000"/>
+<rect x="60.00" y="50.00" width="10.00" height="10.00" fill="#566573" stroke-width="0.5" stroke="#000"/>
+<rect x="50.00" y="60.00" width="10.00" height="10.00" fill="#566573" stroke-width="0.5" stroke="#000"/>
+<rect x="60.00" y="60.00" width="10.00" height="10.00" fill="#566573" stroke-width="0.5" stroke="#000"/>
+    </svg>
