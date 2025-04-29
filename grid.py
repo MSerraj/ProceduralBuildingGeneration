@@ -65,17 +65,17 @@ class Wall(Enum):
         for i in range(rows):
             for j in range(cols):
                 cell_value = grid[i][j]
-                if cell_value in {1, 18, 19}:
+                if cell_value in {1, 21,18, 19}:
                     # Calculate bitmask using grid context
                     bitmask = 0
                     
-                    if i > 0 and grid[i-1][j] in {1, 18, 19}: # up
+                    if i > 0 and grid[i-1][j] in {1, 21, 18, 19}: # up
                         bitmask += 1
-                    if j < cols-1 and grid[i][j+1] in {1, 18, 19}: # right
+                    if j < cols-1 and grid[i][j+1] in {1, 21, 18, 19}: # right
                         bitmask += 2
-                    if i < rows-1 and grid[i+1][j] in {1, 18, 19}: # down
+                    if i < rows-1 and grid[i+1][j] in {1, 21, 18, 19}: # down
                         bitmask += 4
-                    if j > 0 and grid[i][j-1] in {1, 18, 19}: # left
+                    if j > 0 and grid[i][j-1] in {1, 21, 18, 19}: # left
                         bitmask += 8
 
                     # Find matching wall type
