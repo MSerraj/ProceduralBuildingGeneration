@@ -2,6 +2,7 @@ import numpy as np
 from collections import deque, defaultdict
 from math import sqrt
 import matplotlib.pyplot as plt
+import cv2 as cv
 
 
 # Constants
@@ -872,7 +873,7 @@ def find_room_boundaries(grid, room_value, skeleton):
                     bounds.add((ny, nx))
     return list(bounds)
 
-def find_optimal_corridor_tree(grid,min_width = 4):
+def find_optimal_corridor_tree(grid, min_width = 4):
     """
     Constructs a minimal corridor tree (corridor pixels marked as 21)
     that connects the stairwell (20) to all rooms (all values except 0,1,18,19,20,21).
@@ -939,31 +940,31 @@ def find_optimal_corridor_tree(grid,min_width = 4):
         grid[y, x] = 21
 
 
-    return widen_corridors(grid, min_width = min_width)
+    return widen_corridors(grid)
 
-def widen_corridors(grid, val = 21, min_width = 4):
+import numpy as np
+import cv2 as cv
+
+def widen_corridors(grid, val=21, iterations=2):
     """ 
-    Expands corridor to minimum width
+    Expands corridors to minimum width using morphological dilation, 
+    while preserving existing walls (non-zero values).
     """
-    corridor_mask = (grid==val)
-    valid_mask = (grid != 0)
-
-    iterations = (min_width -1 ) // 2
-
-    kernel = [(-1, -1), (-1, 0), (-1, 1),
-              ( 0, -1),          ( 0, 1),
-              ( 1, -1), ( 1, 0), ( 1, 1)]
+    grid = np.array(grid, dtype=np.uint8).copy()
     
-    for _ in range(iterations):
-        expansion = np.zeros_like(corridor_mask)
-        padded = np.pad(corridor_mask, pad_width=1, mode='constant', constant_values=0)
-        for dy, dx in kernel:
-            shifted = np.roll(corridor_mask, shift = (dy, dx), axis = (0,1))
-            expansion |= shifted
-
-        expansion &= valid_mask
-        expansion &= ~corridor_mask
-        corridor_mask |= expansion
-
-    grid[corridor_mask] = val
+    # Create a binary mask of corridors
+    corridor_mask = (grid == val).astype(np.uint8)
+    
+    # Create kernel for dilation
+    kernel = cv.getStructuringElement(cv.MORPH_RECT, (3,3))
+    
+    # Dilate the corridor areas
+    dilated = cv.dilate(corridor_mask, kernel, iterations=iterations)
+    
+    # Only expand into empty spaces (0 values)
+    expand_mask = (dilated > 0) & (grid != 0)
+    
+    # Set expanded areas to corridor value
+    grid[expand_mask] = val
+    
     return grid

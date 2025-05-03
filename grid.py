@@ -30,7 +30,10 @@ class Wall(Enum):
     T_RIGHT = 7   # 1 | 4 | 2
     # Cross Junction
     CROSS = 15    # 1 | 2 | 4 | 8
-
+    # Doors
+    HORIZ_DOOR = 26
+    VERT_DOOR = 21
+    
     def __init__(self, value):
         self._value_ = value
         self.ins = self.get_grid(value)

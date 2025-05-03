@@ -149,7 +149,7 @@ class FloorPlan:
         """ 
         Generate corridors and widen them
         """
-        self.grid = find_optimal_corridor_tree(self.grid, min_width = min_width)
+        self.grid = find_optimal_corridor_tree(self.grid)
     
     def color_coded(self):
         """
