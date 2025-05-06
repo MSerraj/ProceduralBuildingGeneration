@@ -90,9 +90,23 @@ class Wall(Enum):
                 else:
                     wall_type = Wall.EMPTY
 
-                new_grid[i][j] = wall_type
+                new_grid[i][j] = wall_type.value
     
         return new_grid
+
+    @staticmethod
+    def from_wfc_grid(wfc_grid):
+        """Convert WFC grid to our wall representation"""
+        output = np.zeros((wfc_grid.height, wfc_grid.width), dtype=int)
+        for y in range(wfc_grid.height):
+            for x in range(wfc_grid.width):
+                cell = wfc_grid.grid[y,x]
+                if cell.collapsed and cell.options:
+                    print(cell.options[0])
+                    output[y,x] = cell.options[0].value
+                else:
+                    output[y,x] = 0  # Mark unprocessed cells
+        return Wall.convert_to_3x3(output)
 
     def __str__(self):
         return f"{self.name}({self.value}, {self.ins})"

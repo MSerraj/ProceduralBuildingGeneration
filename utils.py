@@ -873,7 +873,7 @@ def find_room_boundaries(grid, room_value, skeleton):
                     bounds.add((ny, nx))
     return list(bounds)
 
-def find_optimal_corridor_tree(grid, min_width = 4):
+def find_optimal_corridor_tree(grid, min_width = 4, through_room = 128):
     """
     Constructs a minimal corridor tree (corridor pixels marked as 21)
     that connects the stairwell (20) to all rooms (all values except 0,1,18,19,20,21).
@@ -881,11 +881,10 @@ def find_optimal_corridor_tree(grid, min_width = 4):
     multi-target BFS to add the shortest connection from the growing tree
     to each unconnected room.
     """
-    # Build the skeleton (corridors allowed where grid==1, 18, or 19)
-    skeleton = np.where((grid == 1) | (grid == 18) | (grid == 19), 1, 0).astype(np.uint8)
-    
-    # Identify room values (exclude corridors, special values, and stairwell)
-    rooms = [val for val in np.unique(grid) if val not in {0, 1, 18, 19, 21} and val != 20]
+    skeleton = np.where((grid == 1) | (grid == 18) | (grid == 19) | (grid == through_room),1, 0).astype(np.uint8)
+
+    # Rooms to connect (exclude through_room from target list)
+    rooms = [val for val in np.unique(grid)  if val not in {0, 1, 18, 19, 21, through_room} and val != 20]
     
     stair_pos = np.argwhere(grid == 20)
     if len(stair_pos) == 0:
@@ -937,7 +936,8 @@ def find_optimal_corridor_tree(grid, min_width = 4):
     
     # --- Annotate the corridors in the grid ---
     for y, x in tree_nodes:
-        grid[y, x] = 21
+        if grid[y, x] != through_room:  # Do not overwrite the through_room
+            grid[y, x] = 21
 
 
     return widen_corridors(grid)

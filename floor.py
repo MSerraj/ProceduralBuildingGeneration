@@ -5,97 +5,16 @@ import enum
 import copy
 from enum import Enum
 from grid import *
-from collections import defaultdict
+from collections import defaultdict, deque
 from utils import (plot_floorplan, visualize_grid, region_growing_simultaneous,
                    build_wall, generate_mapping_rectangles, find_rooms,
                    int_to_color, place_stairwell, find_optimal_corridor_tree)
 
-class WallMaker:
-    def __init__(self, grid):
-        self.grid = grid.copy()
-        self.height, self.width = grid.shape
-        self.options = {}  # Stores possible values for each cell
-        self.setup_options()
-        
-    def setup_options(self):
-        """Set up possible wall/empty for blank spots"""
-        # Inspired by Wave Function Collapse basics from:
-        # https://github.com/mxgmn/WaveFunctionCollapse
-        for y in range(self.height):
-            for x in range(self.width):
-                if self.grid[y,x] == 255 and self.near_wall(y,x):
-                    self.options[(y,x)] = [1, 255]  # Could be wall or empty
-                else:
-                    self.options[(y,x)] = [self.grid[y,x]]  # Fixed value
-                    
-    def near_wall(self, y, x):
-        """Check if cell is next to existing wall"""
-        # Basic neighbor check from:
-        # https://www.reddit.com/r/gamedev/comments/76l583/how_does_wave_function_collapse_work/
-        for dy in [-1, 0, 1]:
-            for dx in [-1, 0, 1]:
-                ny = y + dy
-                nx = x + dx
-                if 0 <= ny < self.height and 0 <= nx < self.width:
-                    if self.grid[ny,nx] == 1:
-                        return True
-        return False
-    
-    def make_walls(self, steps=200):
-        """Main generation process"""
-        # Core WFC logic adapted from simple examples:
-        # https://robertheaton.com/2018/12/17/wavefunction-collapse-algorithm/
-        for _ in range(steps):
-            # Find cells with most constraints
-            uncertain = [pos for pos, opts in self.options.items() if len(opts) > 1]
-            if not uncertain:
-                break
-            
-            # Pick random uncertain cell (simpler than proper entropy)
-            cell = random.choice(uncertain)
-            
-            # 75% chance to pick wall if possible
-            if 1 in self.options[cell]:
-                chosen = 1 if random.random() < 0.75 else 255
-            else:
-                chosen = random.choice(self.options[cell])
-                
-            self.grid[cell] = chosen
-            self.update_neighbors(cell)
-            
-        return self.cleanup_walls()
-    
-    def update_neighbors(self, cell):
-        """When we place a wall, make nearby cells more likely to be walls"""
-        # Neighbor propagation idea from:
-        # https://www.boristhebrave.com/2020/04/13/wave-function-collapse-explained/
-        y, x = cell
-        for dy in [-1, 0, 1]:
-            for dx in [-1, 0, 1]:
-                ny = y + dy
-                nx = x + dx
-                if (ny, nx) in self.options:
-                    if 1 in self.options[(ny, nx)]:
-                        self.options[(ny, nx)].append(1)  # Increase wall chance
-        
-    def cleanup_walls(self):
-        """Remove lonely walls"""
-        # Common post-processing step mentioned in:
-        # https://www.sidefx.com/tutorials/wfc-examples/
-        clean_grid = self.grid.copy()
-        for y in range(1, self.height-1):
-            for x in range(1, self.width-1):
-                if clean_grid[y,x] == 1:
-                    neighbors = 0
-                    for dy, dx in [(-1,0),(1,0),(0,-1),(0,1)]:
-                        if clean_grid[y+dy,x+dx] == 1:
-                            neighbors += 1
-                    if neighbors == 0:
-                        clean_grid[y,x] = 255
-        return clean_grid
 
 class FloorPlan:
     def __init__(self, grid, seeds):
+        from wfc import WFCGrid
+
         """
         Initialize a FloorPlan.
         Args:
@@ -104,6 +23,7 @@ class FloorPlan:
         self.grid = grid
         self.seeds = seeds
         self.original_grid = grid.copy()
+        self.wfc_grid = WFCGrid(width=grid.shape[0], height=grid.shape[1])
     
     def grow_regions(self):
         """
@@ -168,13 +88,41 @@ class FloorPlan:
     def visualize(self):
         visualize_grid(self.grid, figsize=(16, 10), dpi=120, title="Floor Plan Visualization")
     
-    def generate_organic_walls(self, iterations=500):
-        """Generate natural-looking walls in unassigned areas"""
-        generator = WallGenerator(self.grid)
-        self.grid = generator.generate(iterations)
-        # Clean up single pixel artifacts
-        self.grid = self._remove_wall_isolates()
-        
+    def generate_wfc(self, max_attempts=100000000000):
+        """Run the WFC algorithm to generate walls"""
+        from wfc import WFCGrid
+        attempt = 0
+        while attempt < max_attempts:
+            print(f"Attempt {attempt + 1}")
+            try:
+                self.wfc_grid = WFCGrid(width=self.grid.shape[0], height=self.grid.shape[1])
+                while True:
+                    cell = self.wfc_grid.get_lowest_entropy_cell()
+                    if not cell:
+                        break  # Done
+
+                    if not cell.options:
+                        raise ValueError(f"Cell at {cell.position} has no options to collapse")
+
+                    if cell.collapse():
+                        self.wfc_grid.propagation_queue.append(cell)
+                        self.wfc_grid.propagate_constraints()
+
+                # Convert WFC result to grid
+                wfc_enum = Wall.from_wfc_grid(self.wfc_grid)
+                wfc_mask = wfc_enum
+
+                new_grid = self.original_grid.copy()
+                wall_values = {w.value for w in Wall}
+                override = np.isin(wfc_mask, list(wall_values))
+                new_grid[override] = wfc_mask[override]
+                self.grid = new_grid
+                return  # Success
+            except ValueError as e:
+                attempt += 1
+                print(f"[Attempt {attempt}] Failed: {e}")
+        raise RuntimeError("WFC failed after max_attempts")
+
     def _remove_wall_isolates(self):
         """Remove single isolated wall pixels"""
         clean_grid = self.grid.copy()
