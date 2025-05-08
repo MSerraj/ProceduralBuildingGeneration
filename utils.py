@@ -51,12 +51,17 @@ def image_to_int(floorplan):
         (0, 0, 0): 1,          # Walls (black)
         (255, 255, 255): 0,    # Outside (white)
         (255, 174, 201): 255,  # Inside (pink)
-        (237, 28, 36): 128,      # Seed 1 (red)
-        (0, 162, 232): 129,      # Seed 2 (blue)
-        (34, 177, 76): 130,      # Seed 3 (green)
-        (163, 73, 164): 132,    # Seed 4 (purple)
+        #(237, 28, 36): 128,      # Seed 1 (red)
+        (255, 0, 0): 128,       # Seed 1 (red)
+        #(0, 162, 232): 129,      # Seed 2 (blue)
+        (0, 0, 255): 129,      # Seed 2 (blue)
+        #(34, 177, 76): 130,      # Seed 3 (green)
+        (0, 255, 0): 130,      # Seed 3 (green)
+        #(163, 73, 164): 132,    # Seed 4 (purple)
+        (128, 0, 128): 132,    # Seed 4 (purple)
         (255, 127, 39): 136,    # Seed 5 (orange)
-        (255, 242, 0): 144     # Seed 6 (yellow)
+        #(255, 242, 0): 144     # Seed 6 (yellow)
+        (255, 255, 0): 144     # Seed 6 (yellow)
     }
     y_max, x_max, _ = floorplan.shape
     floorplan_int = np.zeros((y_max, x_max), dtype=np.uint8)
@@ -107,102 +112,6 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Patch
 from matplotlib.colors import ListedColormap
 from matplotlib import rcParams
-
-def visualize_grid(result, figsize=(16, 10), dpi=120, title="Floor Plan Visualization"):
-    """
-    Creates a luxury-style visualization with compact, elegant legend placement
-    and premium aesthetic touches.
-    """
-    # Create color-coded grid
-    color_grid = int_to_color(result)
-    
-    # Configure premium styling
-    plt.style.use('seaborn-v0_8-whitegrid')
-    plt.rcParams.update({
-        'font.family': 'Roboto',
-        'axes.titlesize': 26,
-        'axes.titleweight': 'medium',
-        'axes.labelcolor': '#404040',
-        'xtick.labelsize': 12,
-        'ytick.labelsize': 12,
-        'legend.title_fontsize': 13,
-        'legend.fontsize': 11
-    })
-
-    # Create figure with custom layout
-    fig, ax = plt.subplots(figsize=figsize, dpi=dpi, facecolor='#f8f9fa')
-    fig.suptitle(title, y=0.97, fontsize=28, fontweight='medium', 
-                color='#2b2b2b', fontfamily='DejaVu Sans')
-
-    # Main image display
-    im = ax.imshow(color_grid, interpolation='nearest', aspect='equal')
-    
-    # Grid customization
-    ax.set_xticks(np.arange(-.5, result.shape[1], 1), minor=True)
-    ax.set_yticks(np.arange(-.5, result.shape[0], 1), minor=True)
-    ax.grid(which='minor', color='#e0e0e0', linestyle=':', linewidth=0.8)
-    ax.tick_params(which='both', length=0)
-    ax.set_facecolor('#ffffff')
-
-    # Legend elements with compact labels
-    legend_elements = [
-        Patch(facecolor='#000000', edgecolor='#606060', linewidth=0.5, label='Walls'),
-        Patch(facecolor='#285151', label='Structure'),
-        Patch(facecolor='#b4b4b4', label='Separator'),
-        Patch(facecolor='#804040', label='Escalators'),
-        Patch(facecolor='#800040', label='Corridors'),
-        Patch(facecolor='#ed1c24', label='Seed 1'),
-        Patch(facecolor='#00a2e8', label='Seed 2'),
-        Patch(facecolor='#22b14c', label='Seed 3'),
-        Patch(facecolor='#a349a4', label='Seed 4'),
-        Patch(facecolor='#ff7f27', label='Seed 5'),
-        Patch(facecolor='#fff200', label='Seed 6'),
-        Patch(facecolor='#ffc0cb', label='Unassigned')
-    ]
-
-    # Luxury-styled floating legend
-    legend = ax.legend(
-        handles=legend_elements,
-        loc='upper left',
-        bbox_to_anchor=(1.02, 1),
-        ncol=1,
-        frameon=True,
-        framealpha=0.96,
-        facecolor='#ffffff',
-        edgecolor='#d0d0d0',
-        borderaxespad=0.5,
-        title="LEGEND",
-        title_fontproperties={'weight': 'medium', 'size': 12},
-        labelspacing=0.8,
-        handlelength=1.5,
-        handleheight=1.2,
-        handletextpad=0.5,
-        borderpad=0.8
-    )
-    
-    # Add subtle shadow effect to legend
-    legend.get_frame().set_linewidth(0)
-    legend.get_frame().set_boxstyle("round,pad=0.2,rounding_size=0.3")
-    legend.get_frame().set_edgecolor('#c0c0c080')
-    legend.get_frame().set_alpha(0.98)
-
-    # Clean axis presentation
-    ax.set_xlabel("X Coordinate", fontsize=14, labelpad=12, color='#606060')
-    ax.set_ylabel("Y Coordinate", fontsize=14, labelpad=12, color='#606060')
-    ax.set_xticks([])
-    ax.set_yticks([])
-
-    # Add premium border effect
-    for spine in ax.spines.values():
-        spine.set_visible(True)
-        spine.set_edgecolor('#d0d0d0')
-        spine.set_linewidth(1.2)
-
-    # Final layout tuning
-    plt.tight_layout(rect=[0, 0, 0.85, 0.97])
-    fig.subplots_adjust(right=0.82)
-    
-    return fig, ax
 from collections import deque
 import numpy as np
 
@@ -222,6 +131,7 @@ def region_growing_simultaneous(grid, seeds):
     adjacent_directions = [(-1, -1), (-1, 0), (-1, 1),
                            (0, -1),          (0, 1),
                            (1, -1),  (1, 0), (1, 1)]
+    secondary_directions = [(-1, -1), (-1, 1), (1, -1), (1, 1)]  # 8-connected
 
     queue = deque()
     for x, y, value in seeds:
@@ -265,465 +175,362 @@ def region_growing_simultaneous(grid, seeds):
     
     return result
 
-def fit_largest_rectangle(grid, room_number):
-    """ 
-    Fit largest rectangle in room with room cells.
-    Returns the coordinates of the largest rectangle as (top, left, bottom, right).
+def region_growing_simultaneous_rectangular(grid, seeds):
     """
-    if grid.size == 0:
-        return None
+    Grows rectangular regions simultaneously by expanding all four sides each round
+    until they hit obstacles or other regions.
+    """
+    result = grid.copy()
+    # Convert seeds to rectangle representations (top, bottom, left, right, value)
+    queue = deque()
     
-    max_area = 0
-    max_coords = (0, 0, 0, 0)
-    rows, cols = grid.shape
-    heights = [0] * cols  # Initialize histogram heights
-    
-    for row_idx in range(rows):
-        for col in range(cols):
-            if grid[row_idx][col] == room_number:
-                heights[col] += 1
+    # Initialize queue with seed points as 1x1 rectangles
+    for x, y, value in seeds:
+        queue.append((y, y, x, x, value))  # (top, bottom, left, right, value)
+        result[y, x] = value
+
+    def can_expand(top, bottom, left, right, direction, value):
+        """Check if a rectangle can expand in specified direction"""
+        if direction == 'up':
+            if top == 0: return False
+            row = top - 1
+            return np.all(result[row, left:right+1] == 255) and not has_adjacent(row, row+1, left, right, value)
+                   
+        elif direction == 'down':
+            if bottom == result.shape[0]-1: return False
+            row = bottom + 1
+            return np.all(result[row, left:right+1] == 255) and not has_adjacent(row-1, row, left, right, value)
+                   
+        elif direction == 'left':
+            if left == 0: return False
+            col = left - 1
+            return np.all(result[top:bottom+1, col] == 255) and not has_adjacent(top, bottom, col, col+1, value)
+                   
+        elif direction == 'right':
+            if right == result.shape[1]-1: return False
+            col = right + 1
+            return np.all(result[top:bottom+1, col] == 255) and not has_adjacent(top, bottom, col-1, col, value)
+                   
+        return False
+
+    def has_adjacent(t_start, t_end, l_start, l_end, value):
+        """Check 8-connected adjacency for expansion area"""
+        # Expand search area by 1 pixel in all directions
+        t_start = max(0, t_start - 1)
+        t_end = min(result.shape[0]-1, t_end + 1)
+        l_start = max(0, l_start - 1)
+        l_end = min(result.shape[1]-1, l_end + 1)
+        
+        region = result[t_start:t_end+1, l_start:l_end+1]
+        return np.any((region != 255) & (region != value) & (region != 1))
+
+    while queue:
+        round_size = len(queue)
+        expanded = set()
+
+        for _ in range(round_size):
+            top, bottom, left, right, value = queue.popleft()
+            expanded = False
+
+            # Try expanding in all four directions
+            new_coords = []
+            if can_expand(top, bottom, left, right, 'up', value):
+                new_top = top - 1
+                result[new_top, left:right+1] = value
+                new_coords.append((new_top, bottom, left, right, value))
+                expanded = True
+
+            if can_expand(top, bottom, left, right, 'down', value):
+                new_bottom = bottom + 1
+                result[new_bottom, left:right+1] = value
+                new_coords.append((top, new_bottom, left, right, value))
+                expanded = True
+
+            if can_expand(top, bottom, left, right, 'left', value):
+                new_left = left - 1
+                result[top:bottom+1, new_left] = value
+                new_coords.append((top, bottom, new_left, right, value))
+                expanded = True
+
+            if can_expand(top, bottom, left, right, 'right', value):
+                new_right = right + 1
+                result[top:bottom+1, new_right] = value
+                new_coords.append((top, bottom, left, new_right, value))
+                expanded = True
+
+            # If any expansion occurred, keep processing this rectangle
+            if expanded:
+                # Merge coordinates if multiple expansions
+                merged = (
+                    min(t for t,_,_,_,_ in new_coords),
+                    max(b for _,b,_,_,_ in new_coords),
+                    min(l for _,_,l,_,_ in new_coords),
+                    max(r for _,_,_,r,_ in new_coords),
+                    value
+                )
+                queue.append(merged)
             else:
-                heights[col] = 0
+                # Finalize this rectangle
+                result[top:bottom+1, left:right+1] = value
+
+    return result
+
+def region_growing_simultaneous_rectangular2(grid, seeds):
+    """
+    Grows rectangular regions while handling partial edge obstacles.
+    Expands directions independently when corners are blocked but direct path is clear.
+    """
+    result = grid.copy()
+    queue = deque()
+
+    # Initialize with seed points as rectangles
+    for x, y, value in seeds:
+        queue.append((y, y, x, x, value))  # (top, bottom, left, right, value)
+        result[y, x] = value
+
+    def can_expand_direction(top, bottom, left, right, direction, value):
+        """Check expansion viability in specific direction with corner tolerance"""
+        if direction == 'up':
+            if top == 0: return False
+            new_top = top - 1
+            # Check only direct top cells, ignore diagonals
+            return np.all(result[new_top, left:right+1] == 255) and \
+                   not has_directional_conflict(new_top, new_top, left, right, value, 'up')
         
-        # Use a stack to find largest rectangle in histogram
-        stack = [-1]
-        for i in range(cols + 1):
-            current_height = heights[i] if i < cols else 0
-            while stack[-1] != -1 and current_height < heights[stack[-1]]:
-                h = heights[stack.pop()]
-                w = i - stack[-1] - 1
-                area = h * w
-                if area > max_area:
-                    max_area = area
-                    left = stack[-1] + 1
-                    right = i - 1
-                    top = row_idx - h + 1
-                    bottom = row_idx
-                    max_coords = (top, left, bottom, right)
-            stack.append(i)
+        # Similar checks for other directions
+        elif direction == 'down':
+            if bottom == result.shape[0]-1: return False
+            new_bottom = bottom + 1
+            return np.all(result[new_bottom, left:right+1] == 255) and \
+                   not has_directional_conflict(new_bottom, new_bottom, left, right, value, 'down')
+        
+        elif direction == 'left':
+            if left == 0: return False
+            new_left = left - 1
+            return np.all(result[top:bottom+1, new_left] == 255) and \
+                   not has_directional_conflict(top, bottom, new_left, new_left, value, 'left')
+        
+        elif direction == 'right':
+            if right == result.shape[1]-1: return False
+            new_right = right + 1
+            return np.all(result[top:bottom+1, new_right] == 255) and \
+                   not has_directional_conflict(top, bottom, new_right, new_right, value, 'right')
+        
+        return False
+
+    def has_directional_conflict(t_start, t_end, l_start, l_end, value, direction):
+        """Check for conflicts only in expansion direction, ignoring diagonal corners"""
+        # Define search area based on direction
+        if direction == 'up':
+            search_rows = [t_start]
+            search_cols = range(l_start, l_end+1)
+        elif direction == 'down':
+            search_rows = [t_end]
+            search_cols = range(l_start, l_end+1)
+        elif direction == 'left':
+            search_rows = range(t_start, t_end+1)
+            search_cols = [l_start]
+        elif direction == 'right':
+            search_rows = range(t_start, t_end+1)
+            search_cols = [l_end]
+
+        # Check only direct path cells
+        for r in search_rows:
+            for c in search_cols:
+                if 0 <= r < result.shape[0] and 0 <= c < result.shape[1]:
+                    if result[r, c] not in {255, value, 1}:
+                        return True
+        return False
+
+    while queue:
+        round_size = len(queue)
+        
+        for _ in range(round_size):
+            top, bottom, left, right, value = queue.popleft()
+            expansions = []
+
+            # Try expanding in all directions independently
+            for direction in ['up', 'down', 'left', 'right']:
+                if can_expand_direction(top, bottom, left, right, direction, value):
+                    new_coords = expand_rectangle(
+                        top, bottom, left, right, direction, value
+                    )
+                    expansions.append(new_coords)
+
+            # Merge successful expansions
+            if expansions:
+                new_top = min(t for t, _, _, _, _ in expansions)
+                new_bottom = max(b for _, b, _, _, _ in expansions)
+                new_left = min(l for _, _, l, _, _ in expansions)
+                new_right = max(r for _, _, _, r, _ in expansions)
+                queue.append((new_top, new_bottom, new_left, new_right, value))
+                
+                # Update result for merged rectangle
+                result[new_top:new_bottom+1, new_left:new_right+1] = value
+
+        rows, cols = result.shape
+    visited = np.zeros((rows, cols), dtype=bool)
+    for y in range(rows):
+        for x in range(cols):
+            if result[y, x] == 255 and not visited[y, x]:
+                # BFS to find connected component
+                component = []
+                queue = deque()
+                queue.append((y, x))
+                visited[y, x] = True
+                while queue:
+                    cy, cx = queue.popleft()
+                    component.append((cy, cx))
+                    for dy, dx in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                        ny = cy + dy
+                        nx = cx + dx
+                        if 0 <= ny < rows and 0 <= nx < cols:
+                            if result[ny, nx] == 255 and not visited[ny, nx]:
+                                visited[ny, nx] = True
+                                queue.append((ny, nx))
+                # Determine adjacent region with most contact
+                counts = defaultdict(int)
+                for (cy, cx) in component:
+                    for dy, dx in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                        ny = cy + dy
+                        nx = cx + dx
+                        if 0 <= ny < rows and 0 <= nx < cols:
+                            val = result[ny, nx]
+                            if val not in (255, 1):
+                                counts[val] += 1
+                if counts:
+                    max_val = max(counts.items(), key=lambda x: x[1])[0]
+                #else:
+                #    max_val = 1  # Assign to wall if no adjacent regions
+                # Update the component
+                for (cy, cx) in component:
+                    result[cy, cx] = max_val
+
+        rows, cols = result.shape
+    for y in range(rows):
+        for x in range(cols):
+            current_val = result[y, x]
+            if current_val in {1, 19}: continue
+            
+            for dy, dx in [(-1,0), (1,0), (0,-1), (0,1)]:
+                ny = y + dy
+                nx = x + dx
+                if 0 <= ny < rows and 0 <= nx < cols:
+                    if result[ny, nx] != current_val and result[ny, nx] not in {1, 19}:
+                        result[y, x] = 19
+                        break
+
+    # Fix loose corners in original walls (1s)
+    for y in range(rows - 1):
+        for x in range(cols - 1):
+            # Check for diagonal wall pattern
+            if (result[y, x] == 1 and result[y+1, x+1] == 1 and
+                result[y, x+1] != 1 and result[y+1, x] != 1):
+                result[y, x+1] = 19
+                result[y+1, x] = 19
+            elif (result[y, x+1] == 1 and result[y+1, x] == 1 and
+                  result[y, x] != 1 and result[y+1, x+1] != 1):
+                result[y, x] = 19
+                result[y+1, x+1] = 19
+
     
-    return max_coords if max_area > 0 else None
 
-def build_wall(grid, a, b):
+    return result
+
+def expand_rectangle(top, bottom, left, right, direction, value):
+    """Calculate new coordinates after expansion"""
+    if direction == 'up':
+        return (top-1, bottom, left, right, value)
+    elif direction == 'down':
+        return (top, bottom+1, left, right, value)
+    elif direction == 'left':
+        return (top, bottom, left-1, right, value)
+    elif direction == 'right':
+        return (top, bottom, left, right+1, value)
+
+
+def assign_remaining_rectangles(grid):
     """
-    Builds a straight wall between points a and b on the grid.
-    Walls can be either horizontal or vertical.
+    Processes remaining 255 regions with strict rectangular handling:
+    - Only assigns to directly adjacent rooms
+    - Maintains contiguous blocks
+    - Minimum 2x2 size requirement
     """
-    x_a, y_a = a
-    x_b, y_b = b
-
-    if not (x_a == x_b or y_a == y_b):
-        raise ValueError("Wall must be horizontal or vertical")
-        
-    if y_a == y_b:  # Horizontal wall
-        for x in range(min(x_a, x_b), max(x_a, x_b) + 1):
-            if grid[x][y_a] in (1, 0):
-                continue
-            grid[x][y_a] = 18  # Mark as wall
-
-    else:  # Vertical wall
-        for y in range(min(y_a, y_b), max(y_a, y_b) + 1):
-            if grid[x_a][y] in (1, 0):
-                continue
-            grid[x_a][y] = 18  # Mark as wall
-
-    return grid
-
-def generate_mapping_rectangles(grid, rooms=(128, 129, 130, 132, 136, 144)):
-    """
-    For each room number, find its largest rectangle and build walls around it.
-    """
-    # Step 1: Find corners from floor and rooms
-    corners_rooms = []
-    corners_T = []
-    corners_floor = mark_corners_floor(grid)
-
-    for room in rooms:
-        rect = fit_largest_rectangle(grid, room)
-        if rect is None:
-            continue
-
-        top, left, bottom, right = rect
-        # Top-left
-        tl = (top, left)
-        corners_rooms.append(tl)
-        corners_T.extend(mark_corners_T(grid, *tl, 'top_left'))
-
-        # Bottom-left
-        bl = (bottom, left)
-        corners_rooms.append(bl)
-        corners_T.extend(mark_corners_T(grid, *bl, 'bottom_left'))
-
-        # Top-right
-        tr = (top, right)
-        corners_rooms.append(tr)
-        corners_T.extend(mark_corners_T(grid, *tr, 'top_right'))
-
-        # Bottom-right
-        br = (bottom, right)
-        corners_rooms.append(br)
-        corners_T.extend(mark_corners_T(grid, *br, 'bottom_right'))
-        
-    corners_all = list(set(corners_floor + corners_rooms + corners_T))
-
-    # Step 2: Generate rectangles from corners
-    corners_all = gen_rect_corners(corners_all)
-    
-    for rect in corners_all:
-        (x1, y1), (x2, y2) = rect
-        grid = build_wall(grid, (x1, y1), (x2, y1))  # Top wall
-        grid = build_wall(grid, (x1, y2), (x2, y2))  # Bottom wall
-        grid = build_wall(grid, (x1, y1), (x1, y2))  # Left wall
-        grid = build_wall(grid, (x2, y1), (x2, y2))  # Right wall
-    #plot_floorplan(int_to_color(grid), save=False)
-    grid = fill_rooms_with_dominant_color(grid)
-    grid = replace_walls(grid)
-    grid = replace_walls(grid)
-    grid = replace_walls(grid)
-    return grid
-
-def find_rooms(grid):
-    """Identify rooms using flood fill, separated by walls (18)."""
-    rows, cols = grid.shape
+    h, w = grid.shape
     visited = np.zeros_like(grid, dtype=bool)
-    rooms = []
-
-    def bfs(start_x, start_y):
-        queue = deque([(start_x, start_y)])
-        visited[start_x][start_y] = True
-        pixels = []
-        min_x = max_x = start_x
-        min_y = max_y = start_y
-
-        while queue:
-            x, y = queue.popleft()
-            pixels.append(grid[x][y])
-            min_x, max_x = min(min_x, x), max(max_x, x)
-            min_y, max_y = min(min_y, y), max(max_y, y)
-
-            for dx, dy in [(-1,0), (1,0), (0,-1), (0,1)]:
-                nx, ny = x + dx, y + dy
-                if 0 <= nx < rows and 0 <= ny < cols:
-                    if not visited[nx][ny] and grid[nx][ny] != 18 and grid[nx][ny] != 1 and grid[nx][ny] != 0:
-                        visited[nx][ny] = True
-                        queue.append((nx, ny))
-        return ((min_x, min_y), (max_x, max_y)), pixels
-
-    for i in range(rows):
-        for j in range(cols):
-            if not visited[i][j] and grid[i][j] not in (18, 1):
-                bounds, pixels = bfs(i, j)
-                rooms.append((bounds, pixels))
     
-    return rooms
-
-def fill_rooms_with_dominant_color(grid):
-    """Fill each room with its dominant color (excluding walls)."""
-    rooms = find_rooms(grid)
-    new_grid = np.copy(grid)
-    
-    # Ensure wall boundaries are preserved
-    for (min_x, min_y), (max_x, max_y) in [room[0] for room in rooms]:
-        for x in range(min_x, max_x + 1):
-            if grid[x][min_y] in (18, 1, 0):
-                new_grid[x][min_y] = grid[x][min_y]
-            if grid[x][max_y] in (18, 1, 0):
-                new_grid[x][max_y] = grid[x][max_y]
-        for y in range(min_y, max_y + 1):
-            if grid[min_x][y] in (18, 1, 0):
-                new_grid[min_x][y] = grid[min_x][y]
-            if grid[max_x][y] in (18, 1, 0):
-                new_grid[max_x][y] = grid[max_x][y]
-
-    for bounds, pixels in rooms:
-        (min_x, min_y), (max_x, max_y) = bounds
-        freq = defaultdict(int)
-        for val in pixels:
-            if val not in (18, 1, 255):
-                freq[val] += 1
-        if not freq:
-            continue
-        sorted_freq = sorted(freq.items(), key=lambda x: x[1], reverse=True)
-        if sorted_freq:
-            dominant = sorted_freq[0][0]
-            if dominant == 255 and len(sorted_freq) > 1:
-                dominant = sorted_freq[1][0]
+    def get_contiguous_split(rect, neighbors):
+        """Split rectangle into contiguous blocks based on adjacent rooms"""
+        min_i, max_i, min_j, max_j = rect
+        rooms = list(neighbors)
         
-        for x in range(min_x, max_x + 1): # Fill the room area
-            for y in range(min_y, max_y + 1):
-                if new_grid[x][y] != 18 and new_grid[x][y] != 1 and new_grid[x][y] != 0:  # Avoid overwriting walls
-                    new_grid[x][y] = dominant
-    return new_grid
-
-def replace_walls(grid):
-    """
-    Replaces wall pixels (18) between identical regions with the region's value.
-    """
-    SOFT_WALL = 18
-    ROOM_WALL = 19
-    NOT_ACCESS = {0, 1, 18, 19}
-    rows, cols = grid.shape
-    new_grid = np.copy(grid)
-    WALL_RANGE = 2  # 5x5 area radius
-    
-    for x in range(rows):
-        for y in range(cols):
-            left = new_grid[x, y-1] if y > 0 else None
-            right = new_grid[x, y+1] if y < cols-1 else None
-            rightright = new_grid[x, y+2] if y < cols-2 else None
-            rightrightright = new_grid[x, y+3] if y < cols-3 else None
-                
-            up = new_grid[x-1, y] if x > 0 else None
-            down = new_grid[x+1, y] if x < rows-1 else None
-            downdown = new_grid[x+2, y] if x < rows-2 else None
-            downdowndown = new_grid[x+3, y] if x < rows-3 else None
-                
-            if new_grid[x, y] == SOFT_WALL:
-                # Horizontal checks
-                if left == right and left not in NOT_ACCESS:# Replace if horizontal match
-                    new_grid[x, y] = left
-                elif left == rightright and left not in NOT_ACCESS:
-                    new_grid[x, y] = left
-                elif right == SOFT_WALL and rightright != SOFT_WALL:
-                    new_grid[x, y] = left    
-                elif right == SOFT_WALL and rightright == SOFT_WALL and rightrightright != SOFT_WALL:
-                    new_grid[x, y] = left
-                
-                # Vertical checks
-                elif up == down and up not in NOT_ACCESS:# Replace if vertical match
-                    new_grid[x, y] = up
-                elif up == downdown and up not in NOT_ACCESS:
-                    new_grid[x, y] = up
-                elif down == SOFT_WALL and downdown != SOFT_WALL:
-                    new_grid[x, y] = up
-                elif down == SOFT_WALL and downdown == SOFT_WALL and downdowndown != SOFT_WALL:
-                    new_grid[x, y] = up
-                
-                # Proximity to outer walls
-                elif left == 1:
-                    new_grid[x, y] = right
-                elif right == 1:
-                    new_grid[x, y] = left
-                elif up == 1:
-                    new_grid[x, y] = down
-                elif down == 1:
-                    new_grid[x, y] = up
-
-                elif left != right and left not in NOT_ACCESS and right not in NOT_ACCESS:
-                    new_grid[x, y] = ROOM_WALL
-                elif up != down and up not in NOT_ACCESS and down not in NOT_ACCESS:
-                    new_grid[x, y] = ROOM_WALL
-            elif new_grid[x, y] == 1:
-                if down == ROOM_WALL or up == ROOM_WALL or right == ROOM_WALL or left == ROOM_WALL:
-                    new_grid[x, y] = SOFT_WALL 
-    for x in range(rows):
-        for y in range(cols):
-            if new_grid[x, y] == SOFT_WALL:
-                # Check in all directions within 5x5 area
-                candidates = []
-                
-                # Horizontal scan
-                left_values = [new_grid[x, max(y-i, 0)] for i in range(1, WALL_RANGE+1)]
-                right_values = [new_grid[x, min(y+i, cols-1)] for i in range(1, WALL_RANGE+1)]
-                
-                # Vertical scan
-                up_values = [new_grid[max(x-i, 0), y] for i in range(1, WALL_RANGE+1)]
-                down_values = [new_grid[min(x+i, rows-1), y] for i in range(1, WALL_RANGE+1)]
-                
-                # Look for wall-room patterns in 5x5 area
-                for distance in [1, 2]:
-                    # Check left-wall with right-room pattern
-                    if (y-distance >= 0 and new_grid[x, y-distance] == 1 and
-                        y+distance < cols and new_grid[x, y+distance] not in NOT_ACCESS):
-                        candidates.append(new_grid[x, y+distance])
-                    
-                    # Check right-wall with left-room pattern
-                    if (y+distance < cols and new_grid[x, y+distance] == 1 and
-                        y-distance >= 0 and new_grid[x, y-distance] not in NOT_ACCESS):
-                        candidates.append(new_grid[x, y-distance])
-                    
-                    # Check up-wall with down-room pattern
-                    if (x-distance >= 0 and new_grid[x-distance, y] == 1 and
-                        x+distance < rows and new_grid[x+distance, y] not in NOT_ACCESS):
-                        candidates.append(new_grid[x+distance, y])
-                    
-                    # Check down-wall with up-room pattern
-                    if (x+distance < rows and new_grid[x+distance, y] == 1 and
-                        x-distance >= 0 and new_grid[x-distance, y] not in NOT_ACCESS):
-                        candidates.append(new_grid[x-distance, y])
-
-                # Resolve conflicts: choose most frequent candidate
-                if candidates:
-                    freq = defaultdict(int)
-                    for val in candidates:
-                        freq[val] += 1
-                    best = max(freq, key=lambda k: (freq[k], k != 255))
-                    new_grid[x, y] = best
-
-    return new_grid
-
-def gen_rect_corners(corners):
-    """Generates rectangles from corner points using neighbor detection."""
-    x_groups = {}
-    y_groups = {}
-    corners_set = set(corners)
-    
-    for point in corners:
-        x, y = point
-        x_groups.setdefault(y, []).append(x)
-        y_groups.setdefault(x, []).append(y)
-    
-    for y in x_groups:
-        x_groups[y].sort()
-    for x in y_groups:
-        y_groups[x].sort()
-    
-    rectangles = set()
-    
-    for point in corners:
-        x, y = point
-        x_list = x_groups.get(y, [])
-        try:
-            x_idx = x_list.index(x)
-        except ValueError:
-            continue
-        x_prev = x_list[x_idx-1] if x_idx > 0 else None
-        x_next = x_list[x_idx+1] if x_idx < len(x_list)-1 else None
+        # Single neighbor - full assignment
+        if len(rooms) == 1:
+            grid[min_i:max_i+1, min_j:max_j+1] = rooms[0]
+            return
         
-        y_list = y_groups.get(x, [])
-        try:
-            y_idx = y_list.index(y)
-        except ValueError:
-            continue
-        y_prev = y_list[y_idx-1] if y_idx > 0 else None
-        y_next = y_list[y_idx+1] if y_idx < len(y_list)-1 else None
+        # Two neighbors - simple split
+        if len(rooms) == 2:
+            if (max_j - min_j) > (max_i - min_i):  # Vertical split
+                mid = min_j + (max_j - min_j) // 2
+                grid[min_i:max_i+1, min_j:mid+1] = rooms[0]
+                grid[min_i:max_i+1, mid+1:max_j+1] = rooms[1]
+            else:  # Horizontal split
+                mid = min_i + (max_i - min_i) // 2
+                grid[min_i:mid+1, min_j:max_j+1] = rooms[0]
+                grid[mid+1:max_i+1, min_j:max_j+1] = rooms[1]
+            return
         
-        neighbor_checks = [
-            (x_prev, y_prev),
-            (x_prev, y_next),
-            (x_next, y_prev),
-            (x_next, y_next)
-        ]
+        # Three+ neighbors - quadrant assignment
+        center_i = min_i + (max_i - min_i) // 2
+        center_j = min_j + (max_j - min_j) // 2
+        grid[min_i:center_i+1, min_j:center_j+1] = rooms[0]
+        grid[min_i:center_i+1, center_j+1:max_j+1] = rooms[1]
+        grid[center_i+1:max_i+1, min_j:center_j+1] = rooms[2 % len(rooms)]
+        grid[center_i+1:max_i+1, center_j+1:max_j+1] = rooms[3 % len(rooms)]
+
+    def find_rect_neighbors(rect):
+        """Find adjacent rooms with direct contact (no diagonals)"""
+        min_i, max_i, min_j, max_j = rect
+        neighbors = set()
         
-        for nx, ny in neighbor_checks:
-            if nx is None or ny is None:
-                continue
-            if ((nx, ny) in corners_set and 
-                (x, ny) in corners_set and 
-                (nx, y) in corners_set):
-                min_x, max_x = min(x, nx), max(x, nx)
-                min_y, max_y = min(y, ny), max(y, ny)
-                rectangles.add(((min_x, min_y), (max_x, max_y)))
-    new_corners = detect_edge_corners(rectangles, corners_set)
-    output = rectangles | gen_rect_corners(new_corners) if new_corners else rectangles
-    return output
+        # Check all four sides
+        if min_i > 0: neighbors.update(grid[min_i-1, min_j:max_j+1])
+        if max_i < h-1: neighbors.update(grid[max_i+1, min_j:max_j+1])
+        if min_j > 0: neighbors.update(grid[min_i:max_i+1, min_j-1])
+        if max_j < w-1: neighbors.update(grid[min_i:max_i+1, max_j+1])
+        
+        return {x for x in neighbors - {0, 1, 255} if x is not None}
 
-def detect_edge_corners(rectangles, original_corners):
-    """Finds new corners created by rectangle edges."""
-    vertical_edges = set()
-    horizontal_edges = set()
-    
-    for (x1, y1), (x2, y2) in rectangles:
-        horizontal_edges.update((x, y1) for x in range(x1, x2 + 1))
-        horizontal_edges.update((x, y2) for x in range(x1, x2 + 1))
-        vertical_edges.update((x1, y) for y in range(y1, y2 + 1))
-        vertical_edges.update((x2, y) for y in range(y1, y2 + 1))
-    
-    new_corners = vertical_edges & horizontal_edges
-    return new_corners - original_corners
+    # Main processing loop
+    for i in range(h):
+        for j in range(w):
+            if grid[i,j] == 255 and not visited[i,j]:
+                # Find rectangular bounds
+                q = deque([(i,j)])
+                min_i = max_i = i
+                min_j = max_j = j
+                visited[i,j] = True
+                
+                while q:
+                    x, y = q.popleft()
+                    for dx, dy in [(-1,0),(1,0),(0,-1),(0,1)]:
+                        nx, ny = x+dx, y+dy
+                        if 0<=nx<h and 0<=ny<w and not visited[nx,ny] and grid[nx,ny]==255:
+                            visited[nx,ny] = True
+                            q.append((nx,ny))
+                            min_i = min(min_i, nx)
+                            max_i = max(max_i, nx)
+                            min_j = min(min_j, ny)
+                            max_j = max(max_j, ny)
+                
+                # Process only valid rectangles
+                if (max_i - min_i >= 2) and (max_j - min_j >= 2):
+                    neighbors = find_rect_neighbors((min_i, max_i, min_j, max_j))
+                    if neighbors:
+                        get_contiguous_split((min_i, max_i, min_j, max_j), neighbors)
 
-def mark_corners_floor(grid):
-    """
-    Marks corners of the floor map (walls and boundaries).
-    """
-    corners = []
-    rows, cols = grid.shape
-    for x in range(rows):
-        for y in range(cols):
-            if grid[x][y] == 1:  # Wall
-                if (x == 0 or x == rows - 1 or y == 0 or y == cols - 1) or (
-                    (grid[x - 1][y] != 1 and grid[x][y - 1] != 1) or
-                    (grid[x + 1][y] != 1 and grid[x][y - 1] != 1) or
-                    (grid[x - 1][y] != 1 and grid[x][y + 1] != 1) or
-                    (grid[x + 1][y] != 1 and grid[x][y + 1] != 1)):
-                    corners.append((x, y))
-    return corners
-
-def mark_corners_T(grid, x_c, y_c, corner_type):
-    """
-    Detects T-corners from room corners and adds them.
-    """
-    rows, cols = grid.shape
-    t_corners = []
-    corner_directions = {
-        'top_left': (-1, -1),
-        'top_right': (-1, 1),
-        'bottom_left': (1, -1),
-        'bottom_right': (1, 1)
-    }
-    if not (0 <= x_c < rows and 0 <= y_c < cols):
-        return []
-    
-    edge_checks = {
-        'top_left': (x_c == 0 or y_c == 0),
-        'top_right': (x_c == 0 or y_c == cols-1),
-        'bottom_left': (x_c == rows-1 or y_c == 0),
-        'bottom_right': (x_c == rows-1 or y_c == cols-1)
-    }
-    if edge_checks.get(corner_type, False):
-        return []
-    
-    dx = corner_directions[corner_type][0]
-    current_x = x_c
-    while True:
-        current_x += dx
-        if grid[current_x][y_c] == 18:
-            t_corners.append((current_x, y_c))
-        if (not (0 <= current_x < rows)) or (grid[current_x][y_c] == 1):
-            t_corners.append((current_x, y_c))
-            break
-
-    dy = corner_directions[corner_type][1]
-    current_y = y_c
-    while True:
-        current_y += dy
-        if grid[x_c][current_y] == 18:
-            t_corners.append((x_c, current_y))
-        if (not (0 <= current_y < cols)) or (grid[x_c][current_y] == 1):
-            t_corners.append((x_c, current_y))
-            break
-
-    return t_corners
-
-def int_to_color(result):
-    """
-    Converts integer grid values to RGB colors.
-    """
-    reverse_mapping = {
-        18: (40, 81, 81),       # Wall color
-        19: (180, 180, 180),    # Room separator
-        20: (128, 64, 64),      # Escalator/stairs
-        21: (128, 0, 64),       # Corridor
-        128: (237, 28, 36),     # Seed 1 (red)
-        129: (0, 162, 232),     # Seed 2 (blue)
-        130: (34, 177, 76),     # Seed 3 (green)
-        132: (163, 73, 164),    # Seed 4 (purple)
-        136: (255, 127, 39),    # Seed 5 (orange)
-        144: (255, 242, 0)      # Seed 6 (yellow)
-    }
-    color_coded_grid = np.zeros((result.shape[0], result.shape[1], 3), dtype=np.uint8)
-    for y in range(result.shape[0]):
-        for x in range(result.shape[1]):
-            value = result[y, x]
-            if value in reverse_mapping:
-                color_coded_grid[y, x] = reverse_mapping[value]
-            elif value == 1:
-                color_coded_grid[y, x] = (0, 0, 0)  # Wall (black)
-            elif value == 0:
-                color_coded_grid[y, x] = (255, 255, 255)  # Outside (white)
-            elif value == 255:
-                color_coded_grid[y, x] = (255, 192, 203)  # Unassigned (pink)
-    return color_coded_grid
+    return grid
 
 
 ################# STAIRWELL ####################
@@ -939,8 +746,8 @@ def find_optimal_corridor_tree(grid, min_width = 4, through_room = 128):
         if grid[y, x] != through_room:  # Do not overwrite the through_room
             grid[y, x] = 21
 
-
-    return widen_corridors(grid)
+    #grid = widen_corridors(grid)
+    return grid
 
 import numpy as np
 import cv2 as cv
@@ -968,3 +775,479 @@ def widen_corridors(grid, val=21, iterations=2):
     grid[expand_mask] = val
     
     return grid
+
+
+######################### Plotting #################################3
+
+
+def int_to_color(result):
+
+    """Converts integer grid values to RGB colors."""
+
+    reverse_mapping = {
+        18: (40, 81, 81),       # Wall color
+        19: (180, 180, 180),    # Room separator
+        20: (128, 64, 64),      # Escalator/stairs
+        21: (128, 0, 64),       # Corridor
+        #128: (237, 28, 36),     # Seed 1 (red)
+        128: (255, 0, 0),       # Seed 1 (red)
+        #129: (0, 162, 232),     # Seed 2 (blue)
+        129: (0, 128, 255),     # Seed 2 (blue)
+        #130: (34, 177, 76),     # Seed 3 (green)
+        130: (0, 255, 0),     # Seed 3 (green)
+        #132: (163, 73, 164),    # Seed 4 (purple)
+        132: (128, 0, 128),    # Seed 4 (purple)
+        136: (255, 127, 39),    # Seed 5 (orange)
+        #144: (255, 242, 0)      # Seed 6 (yellow)
+        144: (255, 255, 0)      # Seed 6 (yellow)
+    }
+    color_coded_grid = np.zeros((result.shape[0], result.shape[1], 3), dtype=np.uint8)
+    for y in range(result.shape[0]):
+        for x in range(result.shape[1]):
+            value = result[y, x]
+            if value in reverse_mapping:
+                color_coded_grid[y, x] = reverse_mapping[value]
+            elif value == 1:
+                color_coded_grid[y, x] = (0, 0, 0)  # Wall (black)
+            elif value == 0:
+                color_coded_grid[y, x] = (255, 255, 255)  # Outside (white)
+            elif value == 255:
+                color_coded_grid[y, x] = (255, 192, 203)  # Unassigned (pink)
+    return color_coded_grid
+
+
+
+"""
+######################### Room straightening #################################3
+
+
+def fit_largest_rectangle(grid, room_number):
+    
+    Fit largest rectangle in room with room cells.
+    Return the coordinates of the largest rectangle as (top, left, bottom, right).
+    
+    if grid.size == 0:
+        return None
+    
+    max_area = 0
+    max_coords = (0, 0, 0, 0)
+    rows, cols = grid.shape
+    heights = [0] * cols  # Initialize histogram heights
+    
+    for row_idx in range(rows):
+        for col in range(cols):
+            if grid[row_idx][col] == room_number:
+                heights[col] += 1
+            else:
+                heights[col] = 0
+        
+        # Use a stack to find largest rectangle in histogram
+        stack = [-1]
+        for i in range(cols + 1):
+            current_height = heights[i] if i < cols else 0
+            while stack[-1] != -1 and current_height < heights[stack[-1]]:
+                h = heights[stack.pop()]
+                w = i - stack[-1] - 1
+                area = h * w
+                if area > max_area:
+                    max_area = area
+                    left = stack[-1] + 1
+                    right = i - 1
+                    top = row_idx - h + 1
+                    bottom = row_idx
+                    max_coords = (top, left, bottom, right)
+            stack.append(i)
+    
+    return max_coords if max_area > 0 else None
+
+def build_wall(grid, a, b):
+    
+    Builds a straight wall between points a and b on the grid.
+    Walls can be either horizontal or vertical.
+    
+    x_a, y_a = a
+    x_b, y_b = b
+
+    if not (x_a == x_b or y_a == y_b):
+        raise ValueError("Wall must be horizontal or vertical")
+        
+    if y_a == y_b:  # Horizontal wall
+        for x in range(min(x_a, x_b), max(x_a, x_b) + 1):
+            if grid[x][y_a] in (1, 0):
+                continue
+            grid[x][y_a] = 18  # Mark as wall
+
+    else:  # Vertical wall
+        for y in range(min(y_a, y_b), max(y_a, y_b) + 1):
+            if grid[x_a][y] in (1, 0):
+                continue
+            grid[x_a][y] = 18  # Mark as wall
+
+    return grid
+
+def generate_mapping_rectangles(grid, rooms=(128, 129, 130, 132, 136, 144)):
+    
+    For each room number, find its largest rectangle and build walls around it.
+    
+    # Step 1: Find corners from floor and rooms
+    corners_rooms = []
+    corners_T = []
+    corners_floor = mark_corners_floor(grid)
+
+    for room in rooms:
+        rect = fit_largest_rectangle(grid, room)
+        if rect is None:
+            continue
+
+        top, left, bottom, right = rect
+        # Top-left
+        tl = (top, left)
+        corners_rooms.append(tl)
+        corners_T.extend(mark_corners_T(grid, *tl, 'top_left'))
+
+        # Bottom-left
+        bl = (bottom, left)
+        corners_rooms.append(bl)
+        corners_T.extend(mark_corners_T(grid, *bl, 'bottom_left'))
+
+        # Top-right
+        tr = (top, right)
+        corners_rooms.append(tr)
+        corners_T.extend(mark_corners_T(grid, *tr, 'top_right'))
+
+        # Bottom-right
+        br = (bottom, right)
+        corners_rooms.append(br)
+        corners_T.extend(mark_corners_T(grid, *br, 'bottom_right'))
+        
+    corners_all = list(set(corners_floor + corners_rooms + corners_T))
+
+    # Step 2: Generate rectangles from corners
+    corners_all = gen_rect_corners(corners_all)
+    
+    for rect in corners_all:
+        (x1, y1), (x2, y2) = rect
+        grid = build_wall(grid, (x1, y1), (x2, y1))  # Top wall
+        grid = build_wall(grid, (x1, y2), (x2, y2))  # Bottom wall
+        grid = build_wall(grid, (x1, y1), (x1, y2))  # Left wall
+        grid = build_wall(grid, (x2, y1), (x2, y2))  # Right wall
+    #plot_floorplan(int_to_color(grid), save=False)
+    grid = fill_rooms_with_dominant_color(grid)
+    grid = replace_walls(grid)
+    grid = replace_walls(grid)
+    grid = replace_walls(grid)
+    return grid
+
+def find_rooms(grid):
+    Identify rooms using flood fill, separated by walls (18).
+    rows, cols = grid.shape
+    visited = np.zeros_like(grid, dtype=bool)
+    rooms = []
+
+    def bfs(start_x, start_y):
+        queue = deque([(start_x, start_y)])
+        visited[start_x][start_y] = True
+        pixels = []
+        min_x = max_x = start_x
+        min_y = max_y = start_y
+
+        while queue:
+            x, y = queue.popleft()
+            pixels.append(grid[x][y])
+            min_x, max_x = min(min_x, x), max(max_x, x)
+            min_y, max_y = min(min_y, y), max(max_y, y)
+
+            for dx, dy in [(-1,0), (1,0), (0,-1), (0,1)]:
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < rows and 0 <= ny < cols:
+                    if not visited[nx][ny] and grid[nx][ny] != 18 and grid[nx][ny] != 1 and grid[nx][ny] != 0:
+                        visited[nx][ny] = True
+                        queue.append((nx, ny))
+        return ((min_x, min_y), (max_x, max_y)), pixels
+
+    for i in range(rows):
+        for j in range(cols):
+            if not visited[i][j] and grid[i][j] not in (18, 1):
+                bounds, pixels = bfs(i, j)
+                rooms.append((bounds, pixels))
+    
+    return rooms
+
+def fill_rooms_with_dominant_color(grid):
+    Fill each room with its dominant color (excluding walls).
+    rooms = find_rooms(grid)
+    new_grid = np.copy(grid)
+    
+    # Ensure wall boundaries are preserved
+    for (min_x, min_y), (max_x, max_y) in [room[0] for room in rooms]:
+        for x in range(min_x, max_x + 1):
+            if grid[x][min_y] in (18, 1, 0):
+                new_grid[x][min_y] = grid[x][min_y]
+            if grid[x][max_y] in (18, 1, 0):
+                new_grid[x][max_y] = grid[x][max_y]
+        for y in range(min_y, max_y + 1):
+            if grid[min_x][y] in (18, 1, 0):
+                new_grid[min_x][y] = grid[min_x][y]
+            if grid[max_x][y] in (18, 1, 0):
+                new_grid[max_x][y] = grid[max_x][y]
+
+    for bounds, pixels in rooms:
+        (min_x, min_y), (max_x, max_y) = bounds
+        freq = defaultdict(int)
+        for val in pixels:
+            if val not in (18, 1, 255):
+                freq[val] += 1
+        if not freq:
+            continue
+        sorted_freq = sorted(freq.items(), key=lambda x: x[1], reverse=True)
+        if sorted_freq:
+            dominant = sorted_freq[0][0]
+            if dominant == 255 and len(sorted_freq) > 1:
+                dominant = sorted_freq[1][0]
+        
+        for x in range(min_x, max_x + 1): # Fill the room area
+            for y in range(min_y, max_y + 1):
+                if new_grid[x][y] != 18 and new_grid[x][y] != 1 and new_grid[x][y] != 0:  # Avoid overwriting walls
+                    new_grid[x][y] = dominant
+    return new_grid
+
+def replace_walls(grid):
+    
+    Replaces wall pixels (18) between identical regions with the region's value.
+    
+    SOFT_WALL = 18
+    ROOM_WALL = 19
+    NOT_ACCESS = {0, 1, 18, 19}
+    rows, cols = grid.shape
+    new_grid = np.copy(grid)
+    WALL_RANGE = 2  # 5x5 area radius
+    
+    for x in range(rows):
+        for y in range(cols):
+            left = new_grid[x, y-1] if y > 0 else None
+            right = new_grid[x, y+1] if y < cols-1 else None
+            rightright = new_grid[x, y+2] if y < cols-2 else None
+            rightrightright = new_grid[x, y+3] if y < cols-3 else None
+                
+            up = new_grid[x-1, y] if x > 0 else None
+            down = new_grid[x+1, y] if x < rows-1 else None
+            downdown = new_grid[x+2, y] if x < rows-2 else None
+            downdowndown = new_grid[x+3, y] if x < rows-3 else None
+                
+            if new_grid[x, y] == SOFT_WALL:
+                # Horizontal checks
+                if left == right and left not in NOT_ACCESS:# Replace if horizontal match
+                    new_grid[x, y] = left
+                elif left == rightright and left not in NOT_ACCESS:
+                    new_grid[x, y] = left
+                elif right == SOFT_WALL and rightright != SOFT_WALL:
+                    new_grid[x, y] = left    
+                elif right == SOFT_WALL and rightright == SOFT_WALL and rightrightright != SOFT_WALL:
+                    new_grid[x, y] = left
+                
+                # Vertical checks
+                elif up == down and up not in NOT_ACCESS:# Replace if vertical match
+                    new_grid[x, y] = up
+                elif up == downdown and up not in NOT_ACCESS:
+                    new_grid[x, y] = up
+                elif down == SOFT_WALL and downdown != SOFT_WALL:
+                    new_grid[x, y] = up
+                elif down == SOFT_WALL and downdown == SOFT_WALL and downdowndown != SOFT_WALL:
+                    new_grid[x, y] = up
+                
+                # Proximity to outer walls
+                elif left == 1:
+                    new_grid[x, y] = right
+                elif right == 1:
+                    new_grid[x, y] = left
+                elif up == 1:
+                    new_grid[x, y] = down
+                elif down == 1:
+                    new_grid[x, y] = up
+
+                elif left != right and left not in NOT_ACCESS and right not in NOT_ACCESS:
+                    new_grid[x, y] = ROOM_WALL
+                elif up != down and up not in NOT_ACCESS and down not in NOT_ACCESS:
+                    new_grid[x, y] = ROOM_WALL
+            elif new_grid[x, y] == 1:
+                if down == ROOM_WALL or up == ROOM_WALL or right == ROOM_WALL or left == ROOM_WALL:
+                    new_grid[x, y] = SOFT_WALL 
+    for x in range(rows):
+        for y in range(cols):
+            if new_grid[x, y] == SOFT_WALL:
+                # Check in all directions within 5x5 area
+                candidates = []
+                
+                # Horizontal scan
+                left_values = [new_grid[x, max(y-i, 0)] for i in range(1, WALL_RANGE+1)]
+                right_values = [new_grid[x, min(y+i, cols-1)] for i in range(1, WALL_RANGE+1)]
+                
+                # Vertical scan
+                up_values = [new_grid[max(x-i, 0), y] for i in range(1, WALL_RANGE+1)]
+                down_values = [new_grid[min(x+i, rows-1), y] for i in range(1, WALL_RANGE+1)]
+                
+                # Look for wall-room patterns in 5x5 area
+                for distance in [1, 2]:
+                    # Check left-wall with right-room pattern
+                    if (y-distance >= 0 and new_grid[x, y-distance] == 1 and
+                        y+distance < cols and new_grid[x, y+distance] not in NOT_ACCESS):
+                        candidates.append(new_grid[x, y+distance])
+                    
+                    # Check right-wall with left-room pattern
+                    if (y+distance < cols and new_grid[x, y+distance] == 1 and
+                        y-distance >= 0 and new_grid[x, y-distance] not in NOT_ACCESS):
+                        candidates.append(new_grid[x, y-distance])
+                    
+                    # Check up-wall with down-room pattern
+                    if (x-distance >= 0 and new_grid[x-distance, y] == 1 and
+                        x+distance < rows and new_grid[x+distance, y] not in NOT_ACCESS):
+                        candidates.append(new_grid[x+distance, y])
+                    
+                    # Check down-wall with up-room pattern
+                    if (x+distance < rows and new_grid[x+distance, y] == 1 and
+                        x-distance >= 0 and new_grid[x-distance, y] not in NOT_ACCESS):
+                        candidates.append(new_grid[x-distance, y])
+
+                # Resolve conflicts: choose most frequent candidate
+                if candidates:
+                    freq = defaultdict(int)
+                    for val in candidates:
+                        freq[val] += 1
+                    best = max(freq, key=lambda k: (freq[k], k != 255))
+                    new_grid[x, y] = best
+
+    return new_grid
+
+def gen_rect_corners(corners):
+    Generates rectangles from corner points using neighbor detection.
+    x_groups = {}
+    y_groups = {}
+    corners_set = set(corners)
+    
+    for point in corners:
+        x, y = point
+        x_groups.setdefault(y, []).append(x)
+        y_groups.setdefault(x, []).append(y)
+    
+    for y in x_groups:
+        x_groups[y].sort()
+    for x in y_groups:
+        y_groups[x].sort()
+    
+    rectangles = set()
+    
+    for point in corners:
+        x, y = point
+        x_list = x_groups.get(y, [])
+        try:
+            x_idx = x_list.index(x)
+        except ValueError:
+            continue
+        x_prev = x_list[x_idx-1] if x_idx > 0 else None
+        x_next = x_list[x_idx+1] if x_idx < len(x_list)-1 else None
+        
+        y_list = y_groups.get(x, [])
+        try:
+            y_idx = y_list.index(y)
+        except ValueError:
+            continue
+        y_prev = y_list[y_idx-1] if y_idx > 0 else None
+        y_next = y_list[y_idx+1] if y_idx < len(y_list)-1 else None
+        
+        neighbor_checks = [
+            (x_prev, y_prev),
+            (x_prev, y_next),
+            (x_next, y_prev),
+            (x_next, y_next)
+        ]
+        
+        for nx, ny in neighbor_checks:
+            if nx is None or ny is None:
+                continue
+            if ((nx, ny) in corners_set and 
+                (x, ny) in corners_set and 
+                (nx, y) in corners_set):
+                min_x, max_x = min(x, nx), max(x, nx)
+                min_y, max_y = min(y, ny), max(y, ny)
+                rectangles.add(((min_x, min_y), (max_x, max_y)))
+    new_corners = detect_edge_corners(rectangles, corners_set)
+    output = rectangles | gen_rect_corners(new_corners) if new_corners else rectangles
+    return output
+
+def detect_edge_corners(rectangles, original_corners):
+    Finds new corners created by rectangle edges.
+    vertical_edges = set()
+    horizontal_edges = set()
+    
+    for (x1, y1), (x2, y2) in rectangles:
+        horizontal_edges.update((x, y1) for x in range(x1, x2 + 1))
+        horizontal_edges.update((x, y2) for x in range(x1, x2 + 1))
+        vertical_edges.update((x1, y) for y in range(y1, y2 + 1))
+        vertical_edges.update((x2, y) for y in range(y1, y2 + 1))
+    
+    new_corners = vertical_edges & horizontal_edges
+    return new_corners - original_corners
+
+def mark_corners_floor(grid):
+    Marks corners of the floor map (walls and boundaries).
+
+    corners = []
+    rows, cols = grid.shape
+    for x in range(rows):
+        for y in range(cols):
+            if grid[x][y] == 1:  # Wall
+                if (x == 0 or x == rows - 1 or y == 0 or y == cols - 1) or (
+                    (grid[x - 1][y] != 1 and grid[x][y - 1] != 1) or
+                    (grid[x + 1][y] != 1 and grid[x][y - 1] != 1) or
+                    (grid[x - 1][y] != 1 and grid[x][y + 1] != 1) or
+                    (grid[x + 1][y] != 1 and grid[x][y + 1] != 1)):
+                    corners.append((x, y))
+    return corners
+
+def mark_corners_T(grid, x_c, y_c, corner_type):
+
+    Detects T-corners from room corners and adds them.
+
+    rows, cols = grid.shape
+    t_corners = []
+    corner_directions = {
+        'top_left': (-1, -1),
+        'top_right': (-1, 1),
+        'bottom_left': (1, -1),
+        'bottom_right': (1, 1)
+    }
+    if not (0 <= x_c < rows and 0 <= y_c < cols):
+        return []
+    
+    edge_checks = {
+        'top_left': (x_c == 0 or y_c == 0),
+        'top_right': (x_c == 0 or y_c == cols-1),
+        'bottom_left': (x_c == rows-1 or y_c == 0),
+        'bottom_right': (x_c == rows-1 or y_c == cols-1)
+    }
+    if edge_checks.get(corner_type, False):
+        return []
+    
+    dx = corner_directions[corner_type][0]
+    current_x = x_c
+    while True:
+        current_x += dx
+        if grid[current_x][y_c] == 18:
+            t_corners.append((current_x, y_c))
+        if (not (0 <= current_x < rows)) or (grid[current_x][y_c] == 1):
+            t_corners.append((current_x, y_c))
+            break
+
+    dy = corner_directions[corner_type][1]
+    current_y = y_c
+    while True:
+        current_y += dy
+        if grid[x_c][current_y] == 18:
+            t_corners.append((x_c, current_y))
+        if (not (0 <= current_y < cols)) or (grid[x_c][current_y] == 1):
+            t_corners.append((x_c, current_y))
+            break
+
+    return t_corners
+
+"""

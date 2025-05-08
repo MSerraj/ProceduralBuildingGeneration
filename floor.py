@@ -6,9 +6,7 @@ import copy
 from enum import Enum
 from grid import *
 from collections import defaultdict, deque
-from utils import (plot_floorplan, visualize_grid, region_growing_simultaneous,
-                   build_wall, generate_mapping_rectangles, find_rooms,
-                   int_to_color, place_stairwell, find_optimal_corridor_tree)
+from utils import *
 
 
 class FloorPlan:
@@ -25,14 +23,17 @@ class FloorPlan:
         self.original_grid = grid.copy()
         self.wfc_grid = WFCGrid(width=grid.shape[0], height=grid.shape[1])
     
-    def grow_regions(self):
+    def grow_regions(self, rectangular=False):
         """
         Grow regions from seed points.
         Args:
             seeds (list): List of seed tuples [(x, y, value), ...].
         """
-        self.grid = region_growing_simultaneous(self.grid, self.seeds)
-    
+        if not rectangular:
+            self.grid = region_growing_simultaneous(self.grid, self.seeds)
+        else: 
+            self.grid = region_growing_simultaneous_rectangular2(self.grid, self.seeds)
+            #self.grid = remaining_pixels_rectangular(self.grid, self.seeds)
     def build_wall(self, a, b):
         """
         Build a straight wall between two points.
@@ -56,7 +57,7 @@ class FloorPlan:
         """
         return find_rooms(self.grid)
     
-    def generate_stairs(self, x=5, y=5):
+    def generate_stairs(self, x=2, y=2):
         """
         Generate stairs in plan
         Args:
@@ -99,11 +100,9 @@ class FloorPlan:
                 while True:
                     cell = self.wfc_grid.get_lowest_entropy_cell()
                     if not cell:
-                        break  # Done
-
+                        break 
                     if not cell.options:
                         raise ValueError(f"Cell at {cell.position} has no options to collapse")
-
                     if cell.collapse():
                         self.wfc_grid.propagation_queue.append(cell)
                         self.wfc_grid.propagate_constraints()

@@ -12,9 +12,9 @@ class WFCell:
         self.position = position
         self.collapsed = False
         self.options = self.options = list({
-    Wall.VERT, Wall.DOWN, Wall.T_LEFT, Wall.T_RIGHT, Wall.DOWNLEFT, Wall.T_DOWN,
-    Wall.UP, Wall.UPLEFT, Wall.T_UP, Wall.DOWNRIGHT, Wall.UPRIGHT,
-    Wall.HORIZ, Wall.CROSS,    
+    Wall.VERT, Wall.DOWN, Wall.DOWNLEFT,
+    Wall.UP, Wall.UPLEFT, Wall.DOWNRIGHT, Wall.UPRIGHT,
+    Wall.HORIZ,  #Wall.CROSS,Wall.T_UP, Wall.T_LEFT, Wall.T_RIGHT,  Wall.T_DOWN,  
 })
 
     @property
@@ -39,7 +39,7 @@ class WFCGrid:
         self.propagation_queue = deque()
 
     def get_lowest_entropy_cell(self):
-        min_entropy = 999999
+        min_entropy = float('inf')
         candidates = []
         for y in range(self.height):
             for x in range(self.width):
@@ -78,67 +78,82 @@ class WFCGrid:
             rules = {
                 # Segments (single direction)
             Wall.UP: {
-                'up': [Wall.VERT, Wall.DOWN, Wall.T_LEFT, Wall.T_RIGHT, Wall.DOWNLEFT, Wall.DOWNRIGHT, Wall.T_DOWN, Wall.CROSS,    ],
-                'down': [Wall.EMPTY],
+                'up': [Wall.VERT, Wall.DOWN, Wall.DOWNLEFT, Wall.DOWNRIGHT,    ],# Wall.CROSS,, Wall.T_DOWN,Wall.T_LEFT, Wall.T_RIGHT, 
+                'down': [Wall.EMPTY, ],
                 'left': [Wall.EMPTY],
                 'right': [Wall.EMPTY]
             },
             Wall.RIGHT: {
-                'right': [Wall.HORIZ, Wall.T_LEFT, Wall.T_DOWN, Wall.T_UP, Wall.DOWNLEFT, Wall.UPLEFT, Wall.CROSS,    ],
+                'right': [Wall.HORIZ, Wall.DOWNLEFT, Wall.UPLEFT, ],#Wall.CROSS, Wall.T_LEFT, Wall.T_DOWN, Wall.T_UP,    ],
                 'up': [Wall.EMPTY],
                 'down': [Wall.EMPTY],
                 'left': [Wall.EMPTY]
             },
             Wall.DOWN: {
-                'down': [Wall.VERT, Wall.UP, Wall.T_LEFT, Wall.T_RIGHT, Wall.UPLEFT, Wall.UPRIGHT, Wall.T_UP, Wall.CROSS,    ],
+                'down': [Wall.VERT, Wall.UP,  Wall.UPLEFT, Wall.UPRIGHT,],#Wall.CROSS, Wall.T_LEFT, Wall.T_RIGHT,  Wall.T_UP,   ],
                 'up': [Wall.EMPTY],
                 'left': [Wall.EMPTY],
                 'right': [Wall.EMPTY]
             },
             Wall.LEFT: {
-                'left': [Wall.HORIZ, Wall.T_RIGHT, Wall.T_DOWN, Wall.T_UP, Wall.DOWNRIGHT, Wall.UPRIGHT, Wall.CROSS,    ],
+                'left': [Wall.HORIZ, Wall.DOWNRIGHT, Wall.UPRIGHT,    ],# Wall.CROSS,Wall.T_RIGHT, Wall.T_DOWN, Wall.T_UP, 
                 'up': [Wall.EMPTY,  ],
                 'down': [Wall.EMPTY,  ],
                 'right': [Wall.EMPTY,  ]
             },
             # Lengthwise
             Wall.HORIZ: {
-                'left': [Wall.HORIZ, Wall.T_RIGHT, Wall.T_DOWN, Wall.T_UP, Wall.DOWNRIGHT, Wall.UPRIGHT, Wall.CROSS,    ],
-                'right': [Wall.HORIZ, Wall.T_LEFT, Wall.T_DOWN, Wall.T_UP, Wall.DOWNLEFT, Wall.UPLEFT, Wall.CROSS,    ],
+                'left': [Wall.HORIZ,  Wall.DOWNRIGHT, Wall.UPRIGHT, ],#Wall.CROSS, Wall.T_RIGHT, Wall.T_DOWN, Wall.T_UP,   ],
+                'right': [Wall.HORIZ,  Wall.DOWNLEFT, Wall.UPLEFT, ],#Wall.CROSS, Wall.T_LEFT, Wall.T_DOWN, Wall.T_UP,   ],
                 'up': [Wall.EMPTY],
                 'down': [Wall.EMPTY]
             },
             Wall.VERT: {
-                'up': [Wall.VERT, Wall.T_DOWN, Wall.T_LEFT, Wall.T_RIGHT, Wall.DOWNLEFT, Wall.DOWNRIGHT, Wall.CROSS,    ],
-                'down': [Wall.VERT, Wall.T_UP, Wall.T_LEFT, Wall.T_RIGHT, Wall.UPLEFT, Wall.UPRIGHT, Wall.CROSS,    ],
+                'up': [Wall.VERT, Wall.DOWN, Wall.DOWNLEFT, Wall.DOWNRIGHT, Wall.CROSS,    ],#, Wall.T_DOWN,Wall.T_LEFT, Wall.T_RIGHT, 
+                'down': [Wall.VERT, Wall.UP,  Wall.UPLEFT, Wall.UPRIGHT,Wall.CROSS,],# Wall.T_LEFT, Wall.T_RIGHT,  Wall.T_UP,   ],
                 'left': [Wall.EMPTY],
                 'right': [Wall.EMPTY]
             },
             # Corners
             Wall.UPLEFT: {
-                'up': [Wall.VERT, Wall.DOWN, Wall.T_LEFT, Wall.T_RIGHT, Wall.DOWNLEFT, Wall.DOWNRIGHT, Wall.T_DOWN, Wall.CROSS,    ],
-                'left': [Wall.HORIZ, Wall.T_RIGHT, Wall.T_DOWN, Wall.T_UP, Wall.DOWNRIGHT, Wall.UPRIGHT, Wall.CROSS,    ],
+                'up': [Wall.VERT, Wall.DOWN, Wall.DOWNLEFT, Wall.DOWNRIGHT,     ],#Wall.CROSS,, Wall.T_DOWN,Wall.T_LEFT, Wall.T_RIGHT, 
+                'left': [Wall.HORIZ,  Wall.DOWNRIGHT, Wall.UPRIGHT, ],#Wall.CROSS, Wall.T_RIGHT, Wall.T_DOWN, Wall.T_UP,   ],
                 'down': [Wall.EMPTY,  ],
                 'right': [Wall.EMPTY,  ]
             },
             Wall.UPRIGHT: {
-                'up': [Wall.VERT, Wall.DOWN, Wall.T_LEFT, Wall.T_RIGHT, Wall.DOWNLEFT, Wall.DOWNRIGHT, Wall.T_DOWN, Wall.CROSS,    ],
-                'right': [Wall.HORIZ, Wall.T_LEFT, Wall.T_DOWN, Wall.T_UP, Wall.DOWNLEFT, Wall.UPLEFT, Wall.CROSS,    ],
+                'up': [Wall.VERT, Wall.DOWN, Wall.DOWNLEFT, Wall.DOWNRIGHT,     ],#Wall.CROSS,, Wall.T_DOWN,Wall.T_LEFT, Wall.T_RIGHT, 
+                'right': [Wall.HORIZ, Wall.DOWNLEFT, Wall.UPLEFT, ],#Wall.CROSS, Wall.T_LEFT, Wall.T_DOWN, Wall.T_UP,    ],
                 'down': [Wall.EMPTY,  ],
                 'left': [Wall.EMPTY,  ]
             },
             Wall.DOWNLEFT: {
-                'down': [Wall.VERT, Wall.UP, Wall.T_LEFT, Wall.T_RIGHT, Wall.UPLEFT, Wall.UPRIGHT, Wall.T_UP, Wall.CROSS,    ],
-                'left': [Wall.HORIZ, Wall.T_RIGHT, Wall.T_DOWN, Wall.T_UP, Wall.DOWNRIGHT, Wall.UPRIGHT, Wall.CROSS,    ],
+                'down': [Wall.VERT, Wall.UP,  Wall.UPLEFT, Wall.UPRIGHT,],#Wall.CROSS, Wall.T_LEFT, Wall.T_RIGHT,  Wall.T_UP,   ],
+                'left': [Wall.HORIZ,  Wall.DOWNRIGHT, Wall.UPRIGHT, ],#Wall.CROSS, Wall.T_RIGHT, Wall.T_DOWN, Wall.T_UP,   ],
                 'up': [Wall.EMPTY,  ],
                 'right': [Wall.EMPTY,  ]
             },
             Wall.DOWNRIGHT: {
-                'down': [Wall.VERT, Wall.UP, Wall.T_LEFT, Wall.T_RIGHT, Wall.UPLEFT, Wall.UPRIGHT, Wall.T_UP, Wall.CROSS,    ],
-                'right': [Wall.HORIZ, Wall.T_LEFT, Wall.T_DOWN, Wall.T_UP, Wall.DOWNLEFT, Wall.UPLEFT, Wall.CROSS,    ],
+                'down': [Wall.VERT, Wall.UP,  Wall.UPLEFT, Wall.UPRIGHT,],#Wall.CROSS, Wall.T_LEFT, Wall.T_RIGHT,  Wall.T_UP,   ],
+                'right': [Wall.HORIZ, Wall.DOWNLEFT, Wall.UPLEFT,],# Wall.CROSS, Wall.T_LEFT, Wall.T_DOWN, Wall.T_UP,    ],
                 'up': [Wall.EMPTY,  ],
                 'left': [Wall.EMPTY,  ]
             },
+            
+            }
+
+            
+            # Get inverse direction for target
+            inverse_dir = {'left':'right', 'right':'left', 'up':'down', 'down':'up'}[direction]
+            return source in rules.get(target, {}).get(inverse_dir, [])
+    
+            """
+            Wall.CROSS: {
+                'up': [Wall.VERT, Wall.DOWN, Wall.DOWNLEFT, Wall.DOWNRIGHT, Wall.CROSS,    ],#, Wall.T_DOWN,Wall.T_LEFT, Wall.T_RIGHT, 
+                'down': [Wall.VERT, Wall.UP,  Wall.UPLEFT, Wall.UPRIGHT,Wall.CROSS,],# Wall.T_LEFT, Wall.T_RIGHT,  Wall.T_UP,   ],
+                'left': [Wall.HORIZ,  Wall.DOWNRIGHT, Wall.UPRIGHT, Wall.CROSS,],# Wall.T_RIGHT, Wall.T_DOWN, Wall.T_UP,   ],
+                'right': [Wall.HORIZ, Wall.DOWNLEFT, Wall.UPLEFT, Wall.CROSS,],# Wall.T_LEFT, Wall.T_DOWN, Wall.T_UP,    ],
+            }
             # T-Junctions
             Wall.T_UP: {
                 'up': [Wall.VERT, Wall.DOWN, Wall.T_LEFT, Wall.T_RIGHT, Wall.DOWNLEFT, Wall.DOWNRIGHT, Wall.T_DOWN, Wall.CROSS,    ],
@@ -165,12 +180,6 @@ class WFCGrid:
                 'left': [Wall.EMPTY,  ]
             },
             # Cross Junction
-            Wall.CROSS: {
-                'up': [Wall.VERT, Wall.DOWN, Wall.T_LEFT, Wall.T_RIGHT, Wall.DOWNLEFT, Wall.DOWNRIGHT, Wall.T_DOWN, Wall.CROSS,    ],
-                'down': [Wall.VERT, Wall.UP, Wall.T_LEFT, Wall.T_RIGHT, Wall.UPLEFT, Wall.UPRIGHT, Wall.T_UP, Wall.CROSS,    ],
-                'left': [Wall.HORIZ, Wall.T_RIGHT, Wall.T_DOWN, Wall.T_UP, Wall.DOWNRIGHT, Wall.UPRIGHT, Wall.CROSS,    ],
-                'right': [Wall.HORIZ, Wall.T_LEFT, Wall.T_DOWN, Wall.T_UP, Wall.DOWNLEFT, Wall.UPLEFT, Wall.CROSS,    ]
-            }
             #
             # Doors
             ##   : {
@@ -185,10 +194,4 @@ class WFCGrid:
             #    'left': [Wall.EMPTY,  ],
             #    'right': [Wall.EMPTY,  ]},
             #    """
-            }
-
-            
-            # Get inverse direction for target
-            inverse_dir = {'left':'right', 'right':'left', 'up':'down', 'down':'up'}[direction]
-            return source in rules.get(target, {}).get(inverse_dir, [])
     
