@@ -368,7 +368,7 @@ def region_growing_simultaneous_rectangular2(grid, seeds):
                 # Update result for merged rectangle
                 result[new_top:new_bottom+1, new_left:new_right+1] = value
 
-        rows, cols = result.shape
+    rows, cols = result.shape
     visited = np.zeros((rows, cols), dtype=bool)
     for y in range(rows):
         for x in range(cols):
@@ -406,7 +406,6 @@ def region_growing_simultaneous_rectangular2(grid, seeds):
                 for (cy, cx) in component:
                     result[cy, cx] = max_val
 
-        rows, cols = result.shape
     for y in range(rows):
         for x in range(cols):
             current_val = result[y, x]
@@ -423,17 +422,20 @@ def region_growing_simultaneous_rectangular2(grid, seeds):
     # Fix loose corners in original walls (1s)
     for y in range(rows - 1):
         for x in range(cols - 1):
-            # Check for diagonal wall pattern
-            if (result[y, x] == 1 and result[y+1, x+1] == 1 and
-                result[y, x+1] != 1 and result[y+1, x] != 1):
-                result[y, x+1] = 19
-                result[y+1, x] = 19
-            elif (result[y, x+1] == 1 and result[y+1, x] == 1 and
-                  result[y, x] != 1 and result[y+1, x+1] != 1):
+            # Check for diagonal wall pattern 4 times
+            if (result[y, x] not in {1, 19} and result[y+1, x+1] not in {1, 19} and
+                result[y, x+1] in {1, 19} and result[y+1, x] in {1, 19}):
                 result[y, x] = 19
-                result[y+1, x+1] = 19
+            elif (result[y, x] not in {1, 19} and result[y+1, x-1] not in {1, 19} and
+                result[y, x-1] in {1, 19} and result[y+1, x] in {1, 19}):
+                result[y, x] = 19
+            elif (result[y, x] not in {1, 19} and result[y-1, x-1] not in {1, 19} and
+                result[y, x-1] in {1, 19} and result[y-1, x] in {1, 19}):
+                result[y, x] = 19
+            elif (result[y, x] not in {1, 19} and result[y-1, x+1] not in {1, 19} and
+                result[y, x+1] in {1, 19} and result[y-1, x] in {1, 19}):
+                result[y, x] = 19
 
-    
 
     return result
 
@@ -535,6 +537,22 @@ def assign_remaining_rectangles(grid):
 
 ################# STAIRWELL ####################
 
+def mark_corners_floor(grid):
+    """Marks corners of the floor map (walls and boundaries)."""
+
+    corners = []
+    rows, cols = grid.shape
+    for x in range(rows):
+        for y in range(cols):
+            if grid[x][y] == 1:  # Wall
+                if (x == 0 or x == rows - 1 or y == 0 or y == cols - 1) or (
+                    (grid[x - 1][y] != 1 and grid[x][y - 1] != 1) or
+                    (grid[x + 1][y] != 1 and grid[x][y - 1] != 1) or
+                    (grid[x - 1][y] != 1 and grid[x][y + 1] != 1) or
+                    (grid[x + 1][y] != 1 and grid[x][y + 1] != 1)):
+                    corners.append((x, y))
+    return corners
+
 def place_stairwell(grid, size_x, size_y):
     h, w = grid.shape
     center = (h//2, w//2)
@@ -622,9 +640,12 @@ def get_neighbors(coord, skeleton):
     """Return 8-connected neighbors on the skeleton (only if value==1)."""
     y, x = coord
     neighbors = []
+    """
     for dy, dx in [(-1, -1), (-1, 0), (-1, 1),
                    (0, -1),           (0, 1), 
                    (1, -1),  (1, 0),  (0, 1)]:
+    """
+    for dy, dx in [(-1, 0), (0, -1), (0, 1), (1, 0)]:
         ny, nx = y + dy, x + dx
         if 0 <= ny < skeleton.shape[0] and 0 <= nx < skeleton.shape[1]:
             if skeleton[ny, nx]:
@@ -680,7 +701,7 @@ def find_room_boundaries(grid, room_value, skeleton):
                     bounds.add((ny, nx))
     return list(bounds)
 
-def find_optimal_corridor_tree(grid, min_width = 4, through_room = 128):
+def find_optimal_corridor_tree(grid, min_width = 4, through_room = None):
     """
     Constructs a minimal corridor tree (corridor pixels marked as 21)
     that connects the stairwell (20) to all rooms (all values except 0,1,18,19,20,21).
@@ -746,34 +767,42 @@ def find_optimal_corridor_tree(grid, min_width = 4, through_room = 128):
         if grid[y, x] != through_room:  # Do not overwrite the through_room
             grid[y, x] = 21
 
-    #grid = widen_corridors(grid)
+    grid = widen_corridors(grid)
     return grid
 
 import numpy as np
 import cv2 as cv
 
-def widen_corridors(grid, val=21, iterations=2):
+def widen_corridors(grid, val=21, iterations=1):
     """ 
     Expands corridors to minimum width using morphological dilation, 
     while preserving existing walls (non-zero values).
     """
     grid = np.array(grid, dtype=np.uint8).copy()
-    
-    # Create a binary mask of corridors
+
+    # Binary mask of corridors and empty space
     corridor_mask = (grid == val).astype(np.uint8)
-    
-    # Create kernel for dilation
-    kernel = cv.getStructuringElement(cv.MORPH_RECT, (3,3))
-    
-    # Dilate the corridor areas
-    dilated = cv.dilate(corridor_mask, kernel, iterations=iterations)
-    
-    # Only expand into empty spaces (0 values)
-    expand_mask = (dilated > 0) & (grid != 0)
-    
+    empty_mask = (grid == 0).astype(np.uint8)
+
+    # Identify corridor pixels adjacent to empty space
+    # Dilate empty_mask by 1 to mark neighbors
+    empty_dilated = cv.dilate(empty_mask, cv.getStructuringElement(cv.MORPH_RECT, (3,3)))
+    adjacent_to_empty = corridor_mask & (empty_dilated > 0)
+
+    # Kernel definitions
+    k2 = cv.getStructuringElement(cv.MORPH_RECT, (2,2))
+    k3 = cv.getStructuringElement(cv.MORPH_RECT, (3,3))
+
+    # Dilate separately
+    dilated_adj = cv.dilate(adjacent_to_empty, k3, iterations=iterations)
+    dilated_other = cv.dilate(corridor_mask , k2, iterations=iterations)
+
+    # Combine and expand only into empty spaces
+    dilated = (dilated_adj | dilated_other).astype(bool)
+    expand_mask = dilated & (grid != 0)
+
     # Set expanded areas to corridor value
     grid[expand_mask] = val
-    
     return grid
 
 
