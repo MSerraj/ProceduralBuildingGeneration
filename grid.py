@@ -30,6 +30,8 @@ class Wall(Enum):
     T_RIGHT = 7   # 1 | 4 | 2
     # Cross Junction
     CROSS = 15    # 1 | 2 | 4 | 8
+    # Stairs
+    STAIRS = 20
     # Doors
     HORIZ_DOOR = 26
     VERT_DOOR = 21
@@ -57,7 +59,8 @@ class Wall(Enum):
                 7: [[0, 1, 0], [0, 1, 1], [0, 1, 0]],
                 15: [[0, 1, 0], [1, 1, 1], [0, 1, 0]],
                 16: [[0, 0, 0], [0, 1, 0], [0, 0, 0]],  # Single central pixel
-                17: [[0, 0, 0], [0, 0, 0], [0, 0, 0]],}
+                17: [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                20: [[1, 1, 1], [1, 0, 1], [1, 1, 1]],}
         return grids.get(value)
     @staticmethod  
     def convert_to_3x3(grid):
@@ -68,30 +71,131 @@ class Wall(Enum):
         for i in range(rows):
             for j in range(cols):
                 cell_value = grid[i][j]
-                if cell_value in {1, 21,18, 19}:
+                if grid[i][j] == 21:                        
+                    north = grid[i-1][j] if i > 0 else -1
+                    south = grid[i+1][j] if i < rows-1 else -1
+                    east = grid[i][j+1] if j < cols-1 else -1
+                    west = grid[i][j-1] if j > 0 else -1
+                    
+                    northwest = grid[i-1][j-1] if i > 0 and j > 0 else -1
+                    northeast = grid[i-1][j+1] if i > 0 and j < cols-1 else -1
+                    southwest = grid[i+1][j-1] if i < rows-1 and j > 0 else -1
+                    southeast = grid[i+1][j+1] if i < rows-1 and j < cols-1 else -1
+                    # Corners
+                    if north != 21 and west != 21 and south == 21 and east == 21:
+                        wall_type = Wall.DOWNRIGHT
+                    elif north != 21 and east != 21 and south == 21 and west == 21:
+                        wall_type = Wall.DOWNLEFT
+                    elif south != 21 and west != 21 and north == 21 and east == 21:
+                        wall_type = Wall.UPRIGHT
+                    elif south != 21 and east != 21 and north == 21 and west == 21:
+                        wall_type = Wall.UPLEFT
+                        
+                    # Horizontal corridor (east-west)
+                    elif (west == 21 and east == 21) and ((north != 21 and south != 21) or \
+                        (north == 21 and south != 21) or (north != 21 and south == 21)):
+                        wall_type = Wall.HORIZ
+                        
+                    # Vertical corridor (north-south)
+                    elif (north == 21 and south == 21) and ((west != 21 and east != 21) or \
+                        (west == 21 and east != 21) or (west != 21 and east == 21)):
+                        wall_type = Wall.VERT
+                        
+                    # Crossroads/intersection
+                    elif north == 21 and south == 21 and east == 21 and west == 21:
+                        wall_type = Wall.INSIDE
+                        if northwest == 21 and northeast == 21 and southwest != 21 and southeast == 21:
+                            wall_type = Wall.DOWNLEFT
+                        elif northwest == 21 and northeast == 21 and southwest == 21 and southeast != 21:
+                            wall_type = Wall.DOWNRIGHT
+                        elif northwest != 21 and northeast == 21 and southwest == 21 and southeast == 21:
+                            wall_type = Wall.UPLEFT
+                        elif northwest == 21 and northeast != 21 and southwest == 21 and southeast == 21:
+                            wall_type = Wall.UPRIGHT
+                    # T-Junctions
+                    elif north == 21 and south == 21 and (east == 21 or west == 21):
+                        wall_type = Wall.T_UP if east == 21 else Wall.T_DOWN
+                    elif east == 21 and west == 21 and (north == 21 or south == 21):
+                        wall_type = Wall.T_LEFT if south == 21 else Wall.T_RIGHT
+
+                    new_grid[i][j] = wall_type.value if wall_type != Wall.EMPTY else 21
+                elif cell_value in {1, 18, 19}:
                     # Calculate bitmask using grid context
                     bitmask = 0
                     
-                    if i > 0 and grid[i-1][j] in {1, 21, 18, 19}: # up
+                    if i > 0 and grid[i-1][j] in {1, 18, 19}: # up
                         bitmask += 1
-                    if j < cols-1 and grid[i][j+1] in {1, 21, 18, 19}: # right
+                    if j < cols-1 and grid[i][j+1] in {1, 18, 19}: # right
                         bitmask += 2
-                    if i < rows-1 and grid[i+1][j] in {1, 21, 18, 19}: # down
+                    if i < rows-1 and grid[i+1][j] in {1, 18, 19}: # down
                         bitmask += 4
-                    if j > 0 and grid[i][j-1] in {1, 21, 18, 19}: # left
+                    if j > 0 and grid[i][j-1] in {1, 18, 19}: # left
                         bitmask += 8
 
                     # Find matching wall type
                     wall_type = next((w for w in Wall if w.value == bitmask), Wall.EMPTY)
+                # Conversion of corridor into room 
+                    new_grid[i][j] = wall_type.value if wall_type != Wall.EMPTY else 0
+            
                 elif cell_value == 0:
                     wall_type = Wall.EMPTY
-                elif cell_value == 17:
+                    new_grid[i][j] = wall_type.value if wall_type != Wall.EMPTY else 0
+                elif cell_value == 17 or (128 <= cell_value and cell_value <= 144):
                     wall_type = Wall.INSIDE
+                    new_grid[i][j] = wall_type.value if wall_type != Wall.EMPTY else 0
                 else:
                     wall_type = Wall.EMPTY
-
-                new_grid[i][j] = wall_type.value
+                    new_grid[i][j] = wall_type.value if wall_type != Wall.EMPTY else 0
+            
     
+        return new_grid
+    @staticmethod 
+    def convert_corridor_to_room(grid):
+        rows = len(grid)
+        cols = len(grid[0]) if rows else 0
+        new_grid = copy.deepcopy(grid)
+        
+        for i in range(rows):
+            for j in range(cols):
+                if grid[i][j] == 21:                        
+                    wall_type = Wall.EMPTY
+                    north = grid[i-1][j] if i > 0 else -1
+                    south = grid[i+1][j] if i < rows-1 else -1
+                    east = grid[i][j+1] if j < cols-1 else -1
+                    west = grid[i][j-1] if j > 0 else -1
+
+                    # Corners
+                    if north != 21 and west != 21 and south == 21 and east == 21:
+                        wall_type = Wall.DOWNRIGHT
+                    elif north != 21 and east != 21 and south == 21 and west == 21:
+                        wall_type = Wall.DOWNLEFT
+                    elif south != 21 and west != 21 and north == 21 and east == 21:
+                        wall_type = Wall.UPRIGHT
+                    elif south != 21 and east != 21 and north == 21 and west == 21:
+                        wall_type = Wall.UPLEFT
+                        
+                    # Horizontal corridor (east-west)
+                    elif (west == 21 and east == 21) and ((north != 21 and south != 21) or \
+                        (north == 21 and south != 21) or (north != 21 and south == 21)):
+                        wall_type = Wall.HORIZ
+                        
+                    # Vertical corridor (north-south)
+                    elif (north == 21 and south == 21) and ((west != 21 and east != 21) or \
+                        (west == 21 and east != 21) or (west != 21 and east == 21)):
+                        wall_type = Wall.VERT
+                        
+                    # Crossroads/intersection
+                    elif north == 21 and south == 21 and east == 21 and west == 21:
+                        wall_type = Wall.INSIDE
+                        
+                    # T-Junctions
+                    elif north == 21 and south == 21 and (east == 21 or west == 21):
+                        wall_type = Wall.T_UP if east == 21 else Wall.T_DOWN
+                    elif east == 21 and west == 21 and (north == 21 or south == 21):
+                        wall_type = Wall.T_LEFT if south == 21 else Wall.T_RIGHT
+                        
+                    new_grid[i][j] = wall_type.value if wall_type != Wall.EMPTY else 21  # Keep as corridor if unhandled
+                    
         return new_grid
 
     @staticmethod

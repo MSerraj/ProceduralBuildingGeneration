@@ -23,6 +23,9 @@ class FloorPlan:
         self.original_grid = grid.copy()
         self.wfc_grid = WFCGrid(width=grid.shape[0], height=grid.shape[1])
     
+    def set_grid(self, new_grid):
+        self.grid = copy.deepcopy(new_grid)
+    
     def grow_regions(self, rectangular=False):
         """
         Grow regions from seed points.
@@ -34,6 +37,13 @@ class FloorPlan:
         else: 
             self.grid = region_growing_simultaneous_rectangular2(self.grid, self.seeds)
             #self.grid = remaining_pixels_rectangular(self.grid, self.seeds)
+
+    def go_to_3x3(self):
+        #new_grid = Wall.convert_corridor_to_room(self.grid)
+        new_grid = Wall.convert_to_3x3(self.grid)
+        self.grid = np.array(new_grid)
+        for row in self.grid:
+            print(' '.join(map(str, row)))
     def build_wall(self, a, b):
         """
         Build a straight wall between two points.
