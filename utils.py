@@ -721,7 +721,7 @@ def find_optimal_corridor_tree(grid, min_width = 4, through_room = None):
     boundaries = {}
     for room in rooms + [20]:
         boundaries[room] = find_room_boundaries(grid, room, skeleton)
-    print(boundaries)
+    #print(boundaries)
     
     # --- Initialization ---
     # Start with a single seed from the stairwell boundary.
@@ -764,7 +764,7 @@ def find_optimal_corridor_tree(grid, min_width = 4, through_room = None):
     
     # --- Annotate the corridors in the grid ---
     for y, x in tree_nodes:
-        if grid[y, x] != through_room:  # Do not overwrite the through_room
+        if grid[y, x] not in {through_room, 20}:  # Do not overwrite the through_room
             grid[y, x] = 21
 
     grid = widen_corridors(grid)
@@ -799,7 +799,7 @@ def widen_corridors(grid, val=21, iterations=1):
 
     # Combine and expand only into empty spaces
     dilated = (dilated_adj | dilated_other).astype(bool)
-    expand_mask = dilated & (grid != 0)
+    expand_mask = dilated & (grid != 0) &(grid != 20)
 
     # Set expanded areas to corridor value
     grid[expand_mask] = val

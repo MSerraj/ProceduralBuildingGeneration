@@ -21,6 +21,9 @@ class FloorPlan:
         self.grid = grid
         self.seeds = seeds
         self.original_grid = grid.copy()
+        self.room_grid = np.zeros(grid.shape)
+        self.int_grid_3x3 = []
+        self.obj_grid_3x3 = []
         self.wfc_grid = WFCGrid(width=grid.shape[0], height=grid.shape[1])
     
     def set_grid(self, new_grid):
@@ -40,18 +43,19 @@ class FloorPlan:
 
     def go_to_3x3(self):
         #new_grid = Wall.convert_corridor_to_room(self.grid)
-        new_grid = Wall.convert_to_3x3(self.grid)
+        new_grid, room_grid = Wall.convert_to_3x3(self.grid)
         self.grid = np.array(new_grid)
-        for row in self.grid:
-            print(' '.join(map(str, row)))
-    def build_wall(self, a, b):
-        """
-        Build a straight wall between two points.
-        Args:
-            a (tuple): (x, y) start coordinate.
-            b (tuple): (x, y) end coordinate.
-        """
-        self.grid = build_wall(self.grid, a, b)
+        self.room_grid = np.array(room_grid)
+        #for row in self.grid:
+        #    print(' '.join(map(str, row)))
+
+    def corridor_into_room(self):
+        new_grid = Wall.convert_corridor_to_room(self.grid)
+        self.grid = np.array(new_grid)
+
+    def go_to_3x3int(self):
+        new_grid = Wall.convert_3x3_to_3x3int(self.grid, self.room_grid)
+        self.grid = np.array(new_grid)
     
     def generate_mapping_rectangles(self, rooms=(128, 129, 130, 132, 136, 144)):
         """
