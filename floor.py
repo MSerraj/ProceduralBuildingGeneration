@@ -54,7 +54,8 @@ class FloorPlan:
         self.grid = np.array(new_grid)
 
     def go_to_3x3int(self):
-        new_grid = Wall.convert_3x3_to_3x3int(self.grid, self.room_grid)
+        new_grid, queue = Wall.convert_3x3_to_3x3int(self.grid, self.room_grid)
+        new_grid = Wall.postprocess_3x3int(new_grid, queue)
         self.grid = np.array(new_grid)
     
     def generate_mapping_rectangles(self, rooms=(128, 129, 130, 132, 136, 144)):
@@ -94,11 +95,11 @@ class FloorPlan:
         """
         return int_to_color(self.grid)
     
-    def show(self):
+    def show(self, show_doors = False):
         """
         Display the floor plan using matplotlib.
         """
-        plot_floorplan(self.color_coded(), seed_coordinates=self.seeds, save=False)
+        plot_floorplan(self.color_coded(), seed_coordinates=None, save=False, show_doors=show_doors)
 
     def visualize(self):
         visualize_grid(self.grid, figsize=(16, 10), dpi=120, title="Floor Plan Visualization")
@@ -112,25 +113,30 @@ class FloorPlan:
             try:
                 self.wfc_grid = WFCGrid(width=self.grid.shape[0], height=self.grid.shape[1])
                 while True:
+                    
                     cell = self.wfc_grid.get_lowest_entropy_cell()
                     if not cell:
                         break 
+                    print(f"Cell: {cell} and its options {cell.options}")
                     if not cell.options:
                         raise ValueError(f"Cell at {cell.position} has no options to collapse")
                     if cell.collapse():
                         self.wfc_grid.propagation_queue.append(cell)
                         self.wfc_grid.propagate_constraints()
-
+                output = np.zeros((self.wfc_grid.height, self.wfc_grid.width), dtype=int)
+                for y in range(self.wfc_grid.height):
+                    for x in range(self.wfc_grid.width):
+                        cell = self.wfc_grid.grid[y,x]
+                        if cell.collapsed and cell.options:
+                            print(cell.options[0])
+                            output[y,x] = cell.options[0].value
+                        else:
+                            output[y,x] = 255  # Mark unprocessed cells
                 # Convert WFC result to grid
-                wfc_enum = Wall.from_wfc_grid(self.wfc_grid)
-                wfc_mask = wfc_enum
-
-                new_grid = self.original_grid.copy()
-                wall_values = {w.value for w in Wall}
-                override = np.isin(wfc_mask, list(wall_values))
-                new_grid[override] = wfc_mask[override]
-                self.grid = new_grid
-                return  # Success
+                self.wfc_grid = output
+                print(f"Success! Grid: {self.wfc_grid}")
+                self.grid = output
+                return self.wfc_grid
             except ValueError as e:
                 attempt += 1
                 print(f"[Attempt {attempt}] Failed: {e}")

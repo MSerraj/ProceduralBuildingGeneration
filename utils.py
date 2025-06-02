@@ -1,9 +1,8 @@
 import numpy as np
-from collections import deque, defaultdict
+from collections import deque, defaultdict, Counter
 from math import sqrt
 import matplotlib.pyplot as plt
 import cv2 as cv
-
 
 # Constants
 COLOR_TO_VALUE = {
@@ -59,7 +58,7 @@ def image_to_int(floorplan):
         (0, 255, 0): 130,      # Seed 3 (green)
         #(163, 73, 164): 132,    # Seed 4 (purple)
         (128, 0, 128): 132,    # Seed 4 (purple)
-        (255, 127, 39): 136,    # Seed 5 (orange)
+        (255, 128, 0): 136,    # Seed 5 (orange)
         #(255, 242, 0): 144     # Seed 6 (yellow)
         (255, 255, 0): 144     # Seed 6 (yellow)
     }
@@ -79,7 +78,11 @@ def image_to_int(floorplan):
 
     return floorplan_int, seeds
 
-def plot_floorplan(output_array, seed_coordinates=None, save=False):
+from matplotlib.patches import Arc, Wedge
+
+    
+
+def plot_floorplan(output_array, seed_coordinates=None, save=False, show_doors = False, corridor_tone= (230, 153, 204)):
     """
     Plots the processed floorplan and highlights seed coordinates.
 
@@ -91,6 +94,96 @@ def plot_floorplan(output_array, seed_coordinates=None, save=False):
     plt.imshow(output_array, cmap="viridis", vmin=0, vmax=255)
     plt.colorbar(label="Pixel Value")
     plt.title("Processed Floorplan")
+    if show_doors:
+        # Detect both horizontal and vertical door candidates by color
+        door_color = (128, 128, 64)  # or a suitable range filter
+        ys, xs = np.where(np.all(output_array == door_color, axis=-1))
+
+        # Horizontal doors: quarter-circle swings (hinge on one end)
+        for y in np.unique(ys):
+            row_xs = np.sort(xs[ys == y])
+            runs = np.split(row_xs, np.where(np.diff(row_xs) != 1)[0] + 1)
+            for run in runs:
+                if 2 <= len(run) <= 4:
+                    x_start, x_end = run[0], run[-1]
+                    # Radius equals door leaf length
+                    radius = x_end - x_start + 2
+                    # If above or below corridor
+                    y_above = y-1
+                    if y_above < 0:
+                        above_free = True
+                    else:
+                        pixels_above = output_array[y_above, x_start : x_end + 1]  # shape = (run_length, 3)
+                        corridor_mask = np.all(pixels_above == corridor_tone, axis=-1)
+                        stairs_mask = np.all(pixels_above == (128, 64, 64), axis=-1)
+                        # If any of those “above” pixels is NOT corridor, it’s free space
+                        above_free = np.any(~corridor_mask)
+                        stairs_above = np.any(~stairs_mask)
+
+                    if not above_free or not stairs_above:
+                        theta1, theta2 = 90, 180
+                        # Hinge at right end
+                        hinge_x, hinge_y = x_end+1.5, y-0.5
+                    else:
+                        theta1, theta2 = 270, 360
+                        hinge_x, hinge_y = x_start - 0.5, y+0.5
+
+                    # Quarter-circle arc: from horizontal to vertical outward
+                    door_wedge = Wedge(
+                        (hinge_x, hinge_y),       # center = hinge point
+                        r=radius,                 # radius of the quarter‐circle
+                        theta1=theta1,
+                        theta2=theta2,
+                        facecolor="gray",
+                        edgecolor="none",
+                        zorder=11
+                    )
+                    plt.gca().add_patch(door_wedge)
+
+        # Vertical doors: quarter-circle swings (hinge on one end)
+        for x in np.unique(xs):
+            col_ys = np.sort(ys[xs == x])
+            runs = np.split(col_ys, np.where(np.diff(col_ys) != 1)[0] + 1)
+            for run in runs:
+                if 2 <= len(run) <= 4:
+
+                    y_start, y_end = run[0], run[-1]
+                    # Radius equals door leaf length
+                    radius = y_end - y_start + 2
+                    # If above or below corridor
+                    x_left = x - 1
+                    if x_left < 0:
+                        left_free = True
+                    else:
+                        pixels_left = output_array[y_start:y_end+1, x_left]
+                        corridor_mask = np.all(pixels_left == corridor_tone, axis=-1)
+                        stairs_mask = np.all(pixels_left == (128, 64, 64), axis=-1)
+                        left_free = np.any(~corridor_mask)
+                        stairs_free = np.any(~stairs_mask)
+
+                    if not left_free or not stairs_free:
+                        theta1, theta2 = 0, 90
+                        # Hinge at right end
+                        hinge_x, hinge_y = x-0.5, y_start -0.5
+                    else:
+                        theta1, theta2 = 180, 270
+                        hinge_x, hinge_y = x+0.5, y_end + 1
+
+                    # Quarter-circle arc: from vertical to horizontal outward
+                    door_wedge = Wedge(
+                        (hinge_x, hinge_y),
+                        r=radius,
+                        theta1=theta1,
+                        theta2=theta2,
+                        facecolor="gray",
+                        edgecolor="none",
+                        zorder=11
+                    )
+                    plt.gca().add_patch(door_wedge)
+
+    plt.gca().invert_yaxis()  # if origin is top-left
+    plt.axis("equal")
+    plt.legend(loc="upper right")
     if (seed_coordinates):
         for seed in seed_coordinates:
             print(seed)
@@ -410,32 +503,64 @@ def region_growing_simultaneous_rectangular2(grid, seeds):
         for x in range(cols):
             current_val = result[y, x]
             if current_val in {1, 19}: continue
-            
+
             for dy, dx in [(-1,0), (1,0), (0,-1), (0,1)]:
                 ny = y + dy
                 nx = x + dx
                 if 0 <= ny < rows and 0 <= nx < cols:
-                    if result[ny, nx] != current_val and result[ny, nx] not in {1, 19}:
+                    if result[ny, nx] != current_val and result[ny, nx] not in {1, 18, 19}:
                         result[y, x] = 19
                         break
-
+                        
     # Fix loose corners in original walls (1s)
+
+    def check_wall_ok(tile):
+        y = tile[0]
+        x = tile[1]
+        center = result[y, x]
+        bottom = result[y+1, x]
+        bottomright = result[y+1, x+1]
+        bottomleft = result[y+1, x-1]
+        top = result[y-1, x]
+        topright = result[y-1, x+1]
+        topleft = result[y-1, x-1]
+        right = result[y, x+1]
+        left = result[y, x-1]
+        return not right in {1, 18, 19} and bottom in {1, 18, 19} and bottomright in {1, 18, 19}
+    
     for y in range(rows - 1):
         for x in range(cols - 1):
-            # Check for diagonal wall pattern 4 times
-            if (result[y, x] not in {1, 19} and result[y+1, x+1] not in {1, 19} and
-                result[y, x+1] in {1, 19} and result[y+1, x] in {1, 19}):
-                result[y, x] = 19
-            elif (result[y, x] not in {1, 19} and result[y+1, x-1] not in {1, 19} and
-                result[y, x-1] in {1, 19} and result[y+1, x] in {1, 19}):
-                result[y, x] = 19
-            elif (result[y, x] not in {1, 19} and result[y-1, x-1] not in {1, 19} and
-                result[y, x-1] in {1, 19} and result[y-1, x] in {1, 19}):
-                result[y, x] = 19
-            elif (result[y, x] not in {1, 19} and result[y-1, x+1] not in {1, 19} and
-                result[y, x+1] in {1, 19} and result[y-1, x] in {1, 19}):
-                result[y, x] = 19
+            if result[y, x] not in {0, 1, 18, 19}:
+                center = result[y, x]
+                bottom = result[y+1, x]
+                bottomright = result[y+1, x+1]
+                bottomleft = result[y+1, x-1]
+                top = result[y-1, x]
+                topright = result[y-1, x+1]
+                topleft = result[y-1, x-1]
+                right = result[y, x+1]
+                left = result[y, x-1]
+                neighbors = [bottom, top, right, left, bottomleft, bottomright,topright, topleft]
+                cardinal = [top, bottom, left, right]
+                diagonal = [topleft, topright, bottomleft, bottomright]
 
+                wall_cardinal = len([n for n in cardinal if n in {1, 18, 19}])
+                wall_diagonal = len([n for n in diagonal if n in {1, 18, 19}])
+
+                # Fix loose corner: enough cardinal neighbors but no diagonal anchors
+
+                if right in {1, 18, 19} and bottom in {1, 18, 19} and bottomright not in {1, 18, 19}:
+                    if wall_cardinal <= 2 or result[y+1, x+1] == 0:
+                        result[y, x] = 19
+                    else:
+                        result[y+1, x+1] = 19
+                        
+
+                if left in {1, 18, 19} and bottom in {1, 18, 19} and bottomleft not in {1, 18, 19}:
+                    if wall_cardinal <= 2 or result[y+1, x+1] == 0:
+                        result[y, x] = 19
+                    else:
+                        result[y+1, x-1] = 19
 
     return result
 
@@ -641,6 +766,7 @@ def get_neighbors(coord, skeleton):
     y, x = coord
     neighbors = []
     """
+    
     for dy, dx in [(-1, -1), (-1, 0), (-1, 1),
                    (0, -1),           (0, 1), 
                    (1, -1),  (1, 0),  (0, 1)]:
@@ -654,54 +780,130 @@ def get_neighbors(coord, skeleton):
 
 def bfs_on_skeleton(skeleton, start_nodes, target_set):
     """
-    Perform a multi-source BFS from start_nodes over skeleton pixels until
-    any pixel in target_set is reached. Returns the shortest path (as a list
-    of (y,x) coordinates) from one of the start nodes to the target.
+    Multi‐source BFS over `skeleton`, starting from `start_nodes`, until
+    any pixel in `target_set` is reached. Returns a shortest path (list of (y,x) tuples).
     """
+    required_hits=3
+    # 1) Ensure all start_nodes are tuples
+    start_nodes = [tuple(n) for n in start_nodes]
+
+    # For each pixel, we'll remember “the best (maximum) number of target‐hits
+    # seen so far on any path reaching that pixel.” If we reach the same pixel
+    # later with a strictly higher hit‐count, we keep going from there.
+    best_hits_at_pixel = {}   # maps (y,x) → int
+
+    # parent_map[(pixel, hit_count)] = (prev_pixel, prev_hit_count)
+    # so we can reconstruct the path later.
+    parent_map = {}
+
     queue = deque()
-    visited = set()
-    parent = {}  # For path reconstruction
-    
-    for node in start_nodes:
-        queue.append(node)
-        visited.add(node)
-        parent[node] = None
-    
+    # Initialize BFS queue with each start‐node. If a start‐node is itself in
+    # target_set, it already counts as one “hit.”
+    for s in start_nodes:
+        initial_hits = 1 if s in target_set else 0
+        best_hits_at_pixel[s] = initial_hits
+        parent_map[(s, initial_hits)] = None
+        queue.append((s, initial_hits))
+
     while queue:
-        current = queue.popleft()
-        if current in target_set:
-            # Reconstruct path from the start to current.
+        current_pixel, hits_so_far = queue.popleft()
+        # If we've already collected enough, we’re done!
+        if hits_so_far >= required_hits:
+            # Reconstruct the path (just the sequence of pixels) for this state.
             path = []
-            while current is not None:
-                path.append(current)
-                current = parent[current]
+            state = (current_pixel, hits_so_far)
+            while state is not None:
+                pix, h = state
+                path.append(pix)
+                state = parent_map[state]
             path.reverse()
             return path
-        for nb in get_neighbors(current, skeleton):
-            if nb not in visited:
-                visited.add(nb)
-                parent[nb] = current
-                queue.append(nb)
-    return None  # No connection found
 
-def find_room_boundaries(grid, room_value, skeleton):
-    """
-    Returns a list of skeleton pixel coordinates that are adjacent
-    (4-connected) to any cell belonging to the room (or stairwell).
-    """
-    bounds = set()
-    room_cells = np.argwhere(grid == room_value)
-    for y, x in room_cells:
-        for dy, dx in [(-1, -1), (-1, 0), (-1, 1),
-                       (0, -1),           (0, 1), 
-                       (1, -1),  (1, 0),  (1, 1)]:
-            ny, nx = y + dy, x + dx
-            if 0 <= ny < grid.shape[0] and 0 <= nx < grid.shape[1]:
-                if skeleton[ny, nx]:
-                    bounds.add((ny, nx))
-    return list(bounds)
+        # Otherwise, explore neighbors
+        for nb in get_neighbors(current_pixel, skeleton):
+            nb = tuple(nb)  # force to tuple so it’s hashable
 
-def find_optimal_corridor_tree(grid, min_width = 4, through_room = None):
+            # Determine how many “hits” we’d have if we step into nb:
+            #   - if nb is in target_set AND we have not already counted it,
+            #     increment hits_so_far by 1.
+            #   - BUT—because BFS never revisits the SAME pixel twice on a SINGLE path,
+            #     we only ever count each pixel once. So simply:
+            new_hits = hits_so_far + (1 if nb in target_set else 0)
+
+            # Have we ever reached nb before with >= new_hits? If so, skip.
+            prev_best = best_hits_at_pixel.get(nb, -1)
+            if new_hits <= prev_best:
+                # That means we’ve already reached nb via some path
+                # that gathered as many or more target‐hits—no need to revisit.
+                continue
+
+            # Otherwise, this is a strictly better “hit‐count” at nb.
+            best_hits_at_pixel[nb] = new_hits
+            parent_map[(nb, new_hits)] = (current_pixel, hits_so_far)
+            queue.append((nb, new_hits))
+
+    # If queue empties without ever collecting `required_hits` hits, return None.
+    return None
+
+def find_room_loose(grid):
+    """
+    Returns all boundary pixels of `rooms` adjacent.
+    """
+    rows, cols = grid.shape
+    for y in range(rows):
+        for x in range(cols):
+            center = grid[y, x]
+            if center in {1, 18, 19}:
+                def get(y_, x_):
+                    return grid[y_, x_] if 0 <= y_ < rows and 0 <= x_ < cols else -1  # use -1 for out-of-bounds
+
+                bottom      = get(y+1, x)
+                bottomright = get(y+1, x+1)
+                bottomleft  = get(y+1, x-1)
+                top         = get(y-1, x)
+                topright    = get(y-1, x+1)
+                topleft     = get(y-1, x-1)
+                right       = get(y, x+1)
+                left        = get(y, x-1)
+                neighbors = [bottom, top, right, left, bottomleft, bottomright,topright, topleft]
+                cardinal = [top, bottom, left, right]
+                diagonal = [topleft, topright, bottomleft, bottomright]
+
+                wall = [n for n in neighbors if n in {0, 1, 18, 19}]
+                ziro = [n for n in neighbors if n in {0}]
+                corridor = [n for n in neighbors if n in {20, 21}]
+                room_pix = Counter(wall).most_common(1)
+                room_pix = room_pix[0][0]
+
+                wall_cardinal = len([n for n in cardinal if n in {1, 18, 19, 21}])
+                wall_diagonal = len([n for n in diagonal if n in {1, 18, 19, 21}])
+
+                #if len(corridor) >= 1:
+                #    grid[y, x] = room_pix
+                if room_pix == 0 and len(ziro) >= 3 and len(corridor) >= 3:
+                    print("CORNERRRRRRRRRRRRRRRRrrrr")
+                    grid[y, x] = 0
+                elif room_pix == 0 and len(ziro) >= 5 and len(corridor) >= 2:
+                    grid[y, x] = 0
+
+    return grid
+
+
+
+import numpy as np
+from scipy import ndimage
+
+def find_room_boundaries(grid, room_id, skeleton):
+    """
+    Returns all boundary pixels of `room_id` adjacent to the skeleton.
+    """
+    room_mask = (grid == room_id)
+    struct2 = ndimage.generate_binary_structure(2, 2)
+    dilated = ndimage.binary_dilation(room_mask, structure=struct2).astype(room_mask.dtype)
+    boundary = dilated & (skeleton == 1)  # Overlap with skeleton
+    return np.argwhere(boundary)
+
+def find_optimal_corridor_tree(grid, min_width = 4, through_room = None, min_adjacency=4):
     """
     Constructs a minimal corridor tree (corridor pixels marked as 21)
     that connects the stairwell (20) to all rooms (all values except 0,1,18,19,20,21).
@@ -709,7 +911,7 @@ def find_optimal_corridor_tree(grid, min_width = 4, through_room = None):
     multi-target BFS to add the shortest connection from the growing tree
     to each unconnected room.
     """
-    skeleton = np.where((grid == 1) | (grid == 18) | (grid == 19) | (grid == through_room),1, 0).astype(np.uint8)
+    skeleton = np.where((grid == 1) | (grid == 18) | (grid == 19) | (grid == through_room), 1, 0).astype(np.uint8)
 
     # Rooms to connect (exclude through_room from target list)
     rooms = [val for val in np.unique(grid)  if val not in {0, 1, 18, 19, 21, through_room} and val != 20]
@@ -721,20 +923,18 @@ def find_optimal_corridor_tree(grid, min_width = 4, through_room = None):
     boundaries = {}
     for room in rooms + [20]:
         boundaries[room] = find_room_boundaries(grid, room, skeleton)
-    #print(boundaries)
-    
+    #print(tuple([boundaries[20][0]]).dtype)
     # --- Initialization ---
     # Start with a single seed from the stairwell boundary.
-    if not boundaries[20]:
+    if len(boundaries[20]) == 0:
         raise ValueError("Stairwell has no valid boundary on the skeleton")
     
-    tree_nodes = set([boundaries[20][0]])  # our initial tree (a single pixel)
+    tree_nodes = set([tuple(boundaries[20][0])])  # our initial tree (a single pixel)
     connected_rooms = {20}  # the stairwell is our seed
     unconnected_rooms = set(rooms)  # remaining rooms
-    
     # Build mapping for each room: room id -> set of boundary pixels (as candidates)
-    target_boundaries = {room: set(boundaries[room]) for room in unconnected_rooms}
-    
+    target_boundaries = {room: {tuple(coord) for coord in boundaries[room]} for room in unconnected_rooms}
+    #tuple(map(tuple, arr))
     # --- Iteratively add the shortest connection from the tree to a new room ---
     while unconnected_rooms:
         # Create a union of all target pixels from unconnected rooms.
@@ -768,12 +968,10 @@ def find_optimal_corridor_tree(grid, min_width = 4, through_room = None):
             grid[y, x] = 21
 
     grid = widen_corridors(grid)
+    grid = find_room_loose(grid)
     return grid
 
-import numpy as np
-import cv2 as cv
-
-def widen_corridors(grid, val=21, iterations=1):
+def widen_corridors(grid, val=21, iterations=2):
     """ 
     Expands corridors to minimum width using morphological dilation, 
     while preserving existing walls (non-zero values).
@@ -799,11 +997,12 @@ def widen_corridors(grid, val=21, iterations=1):
 
     # Combine and expand only into empty spaces
     dilated = (dilated_adj | dilated_other).astype(bool)
-    expand_mask = dilated & (grid != 0) &(grid != 20)
+    expand_mask = dilated & (grid != 0) & (grid != 20)
 
     # Set expanded areas to corridor value
     grid[expand_mask] = val
     return grid
+
 
 
 ######################### Plotting #################################3
@@ -814,21 +1013,31 @@ def int_to_color(result):
     """Converts integer grid values to RGB colors."""
 
     reverse_mapping = {
+        4: (128, 128, 64),     # Door
+        5: (128, 255, 255),    # Window
         18: (40, 81, 81),       # Wall color
         19: (180, 180, 180),    # Room separator
         20: (128, 64, 64),      # Escalator/stairs
-        21: (128, 0, 64),       # Corridor
+        21: (204, 102, 178),       # Corridor
         #128: (237, 28, 36),     # Seed 1 (red)
-        128: (255, 0, 0),       # Seed 1 (red)
+        #128: (255, 0, 0),       # Seed 1 (red)
         #129: (0, 162, 232),     # Seed 2 (blue)
-        129: (0, 128, 255),     # Seed 2 (blue)
+        #129: (0, 128, 255),     # Seed 2 (blue)
         #130: (34, 177, 76),     # Seed 3 (green)
-        130: (0, 255, 0),     # Seed 3 (green)
+        #130: (0, 255, 0),     # Seed 3 (green)
         #132: (163, 73, 164),    # Seed 4 (purple)
-        132: (128, 0, 128),    # Seed 4 (purple)
-        136: (255, 127, 39),    # Seed 5 (orange)
+        #132: (128, 0, 128),    # Seed 4 (purple)
+        #136: (255, 127, 39),    # Seed 5 (orange)
         #144: (255, 242, 0)      # Seed 6 (yellow)
-        144: (255, 255, 0)      # Seed 6 (yellow)
+        #144: (255, 255, 0)      # Seed 6 (yellow)
+
+            # Soft Pastel Seed Colors (moderate pastel)
+        128: (255, 153, 153),   # Seed 1 (light pastel red)
+        129: (153, 204, 255),   # Seed 2 (light pastel blue)
+        130: (153, 255, 153),   # Seed 3 (light pastel green)
+        132: (204, 153, 255),   # Seed 4 (light pastel purple)
+        136: (255, 204, 153),   # Seed 5 (light pastel orange)
+        144: (255, 255, 170)    # Seed 6 (light pastel yellow)
     }
     color_coded_grid = np.zeros((result.shape[0], result.shape[1], 3), dtype=np.uint8)
     for y in range(result.shape[0]):
