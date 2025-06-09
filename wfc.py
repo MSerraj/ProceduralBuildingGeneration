@@ -202,22 +202,3 @@ class WFCGrid:
             # Get inverse direction for target
             inverse_dir = {'left':'right', 'right':'left', 'up':'down', 'down':'up'}[direction]
             return source in rules.get(target, {}).get(inverse_dir, [])
-    
-            """
-            
-            # Cross Junction
-            #
-            # Doors
-            ##   : {
-            #    'left': [Wall.HORIZ,    , Wall.T_RIGHT, Wall.T_DOWN, Wall.T_UP, Wall.DOWNRIGHT, Wall.UPRIGHT, Wall.CROSS],
-            #    'right': [Wall.HORIZ,    , Wall.T_LEFT, Wall.T_DOWN, Wall.T_UP, Wall.DOWNLEFT, Wall.UPLEFT, Wall.CROSS],
-            #    'up': [Wall.EMPTY,  ],
-            #    'down': [Wall.EMPTY,  ]
-            #},
-            #   : {
-            #    'up': [Wall.VERT,    , Wall.T_DOWN, Wall.T_LEFT, Wall.T_RIGHT, Wall.DOWNLEFT, Wall.DOWNRIGHT, Wall.CROSS],
-            #    'down': [Wall.VERT,    , Wall.T_UP, Wall.T_LEFT, Wall.T_RIGHT, Wall.UPLEFT, Wall.UPRIGHT, Wall.CROSS],
-            #    'left': [Wall.EMPTY,  ],
-            #    'right': [Wall.EMPTY,  ]},
-            #    """
-    

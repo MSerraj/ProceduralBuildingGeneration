@@ -57,20 +57,7 @@ class FloorPlan:
         new_grid, queue = Wall.convert_3x3_to_3x3int(self.grid, self.room_grid)
         new_grid = Wall.postprocess_3x3int(new_grid, queue)
         self.grid = np.array(new_grid)
-    
-    def generate_mapping_rectangles(self, rooms=(128, 129, 130, 132, 136, 144)):
-        """
-        Generate mapping rectangles for the given rooms.
-        """
-        self.grid = generate_mapping_rectangles(np.array(self.grid), rooms)
-    
-    def get_rooms(self):
-        """
-        Identify rooms from the grid.
-        Returns:
-            list: Each item is a tuple of (bounds, pixel values).
-        """
-        return find_rooms(self.grid)
+
     
     def generate_stairs(self, x=2, y=2):
         """
@@ -100,9 +87,6 @@ class FloorPlan:
         Display the floor plan using matplotlib.
         """
         plot_floorplan(self.color_coded(), seed_coordinates=None, save=False, show_doors=show_doors)
-
-    def visualize(self):
-        visualize_grid(self.grid, figsize=(16, 10), dpi=120, title="Floor Plan Visualization")
     
     def generate_wfc(self, max_attempts=100000000000):
         """Run the WFC algorithm to generate walls"""
@@ -153,3 +137,16 @@ class FloorPlan:
                     if neighbors == 0:
                         clean_grid[i,j] = 255
         return clean_grid
+    
+    """
+        def generate_mapping_rectangles(self, rooms=(128, 129, 130, 132, 136, 144)):
+        Generate mapping rectangles for the given rooms.
+        self.grid = generate_mapping_rectangles(np.array(self.grid), rooms)
+    
+    def get_rooms(self):
+        Identify rooms from the grid.
+        Returns:
+            list: Each item is a tuple of (bounds, pixel values).
+        return find_rooms(self.grid)
+    
+    """

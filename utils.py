@@ -3,6 +3,9 @@ from collections import deque, defaultdict, Counter
 from math import sqrt
 import matplotlib.pyplot as plt
 import cv2 as cv
+from matplotlib.patches import Arc, Wedge, Patch
+from matplotlib.colors import ListedColormap
+from matplotlib import rcParams
 
 # Constants
 COLOR_TO_VALUE = {
@@ -78,135 +81,185 @@ def image_to_int(floorplan):
 
     return floorplan_int, seeds
 
-from matplotlib.patches import Arc, Wedge
-
-    
-
-def plot_floorplan(output_array, seed_coordinates=None, save=False, show_doors = False, corridor_tone= (230, 153, 204)):
+def plot_floorplan(
+    output_array,
+    seed_coordinates=None,
+    save=False,
+    show_doors=False,
+    corridor_tone=(204, 102, 178),
+):
     """
     Plots the processed floorplan and highlights seed coordinates.
 
     Args:
-        output_array (np.array): Processed floorplan array.
-        seed_coordinates (list): List of seed coordinates in the format [(x1, y1, value1), ...].
+        output_array (np.ndarray): H×W×3 RGB floorplan.
+        seed_coordinates (List[Tuple[int,int,int]]): [(x, y, seed_value), …]
+        save (bool): Whether to write a PNG to disk.
+        show_doors (bool): If True, find door pixels and draw swing arcs.
+        corridor_tone (Tuple[int,int,int]): RGB for corridor pixels.
     """
-    plt.figure(figsize=(10, 10))
-    plt.imshow(output_array, cmap="viridis", vmin=0, vmax=255)
-    plt.colorbar(label="Pixel Value")
-    plt.title("Processed Floorplan")
+    fig, ax = plt.subplots(figsize=(10, 10))
+    ax.imshow(output_array, vmin=0, vmax=255)
+    ax.set_title("Wave Function Collapse Floorplan", fontsize=40, fontweight="bold",x=0.5, y=1.02)
+    ax.invert_yaxis()
+    ax.axis("equal")
+    
+    # === 1) Draw doors and room legend if requested ===
     if show_doors:
-        # Detect both horizontal and vertical door candidates by color
-        door_color = (128, 128, 64)  # or a suitable range filter
-        ys, xs = np.where(np.all(output_array == door_color, axis=-1))
-
-        # Horizontal doors: quarter-circle swings (hinge on one end)
-        for y in np.unique(ys):
-            row_xs = np.sort(xs[ys == y])
-            runs = np.split(row_xs, np.where(np.diff(row_xs) != 1)[0] + 1)
-            for run in runs:
-                if 2 <= len(run) <= 4:
-                    x_start, x_end = run[0], run[-1]
-                    # Radius equals door leaf length
-                    radius = x_end - x_start + 2
-                    # If above or below corridor
-                    y_above = y-1
-                    if y_above < 0:
-                        above_free = True
-                    else:
-                        pixels_above = output_array[y_above, x_start : x_end + 1]  # shape = (run_length, 3)
-                        corridor_mask = np.all(pixels_above == corridor_tone, axis=-1)
-                        stairs_mask = np.all(pixels_above == (128, 64, 64), axis=-1)
-                        # If any of those “above” pixels is NOT corridor, it’s free space
-                        above_free = np.any(~corridor_mask)
-                        stairs_above = np.any(~stairs_mask)
-
-                    if not above_free or not stairs_above:
-                        theta1, theta2 = 90, 180
-                        # Hinge at right end
-                        hinge_x, hinge_y = x_end+1.5, y-0.5
-                    else:
-                        theta1, theta2 = 270, 360
-                        hinge_x, hinge_y = x_start - 0.5, y+0.5
-
-                    # Quarter-circle arc: from horizontal to vertical outward
-                    door_wedge = Wedge(
-                        (hinge_x, hinge_y),       # center = hinge point
-                        r=radius,                 # radius of the quarter‐circle
-                        theta1=theta1,
-                        theta2=theta2,
-                        facecolor="gray",
-                        edgecolor="none",
-                        zorder=11
-                    )
-                    plt.gca().add_patch(door_wedge)
-
-        # Vertical doors: quarter-circle swings (hinge on one end)
-        for x in np.unique(xs):
-            col_ys = np.sort(ys[xs == x])
-            runs = np.split(col_ys, np.where(np.diff(col_ys) != 1)[0] + 1)
-            for run in runs:
-                if 2 <= len(run) <= 4:
-
-                    y_start, y_end = run[0], run[-1]
-                    # Radius equals door leaf length
-                    radius = y_end - y_start + 2
-                    # If above or below corridor
-                    x_left = x - 1
-                    if x_left < 0:
-                        left_free = True
-                    else:
-                        pixels_left = output_array[y_start:y_end+1, x_left]
-                        corridor_mask = np.all(pixels_left == corridor_tone, axis=-1)
-                        stairs_mask = np.all(pixels_left == (128, 64, 64), axis=-1)
-                        left_free = np.any(~corridor_mask)
-                        stairs_free = np.any(~stairs_mask)
-
-                    if not left_free or not stairs_free:
-                        theta1, theta2 = 0, 90
-                        # Hinge at right end
-                        hinge_x, hinge_y = x-0.5, y_start -0.5
-                    else:
-                        theta1, theta2 = 180, 270
-                        hinge_x, hinge_y = x+0.5, y_end + 1
-
-                    # Quarter-circle arc: from vertical to horizontal outward
-                    door_wedge = Wedge(
-                        (hinge_x, hinge_y),
-                        r=radius,
-                        theta1=theta1,
-                        theta2=theta2,
-                        facecolor="gray",
-                        edgecolor="none",
-                        zorder=11
-                    )
-                    plt.gca().add_patch(door_wedge)
-
-    plt.gca().invert_yaxis()  # if origin is top-left
-    plt.axis("equal")
-    plt.legend(loc="upper right")
-    if (seed_coordinates):
-        for seed in seed_coordinates:
-            print(seed)
-            x, y, value = seed
-            plt.scatter(x, y, color="red", s=50, edgecolors="white", label=f"Seed {value}")
-            plt.text(x, y, f"{value}", color="white", fontsize=12, ha="center", va="center")
-
-    handles, labels = plt.gca().get_legend_handles_labels()
-    by_label = dict(zip(labels, handles))
-    plt.axis('off')
-    if (save):
-        filename = f"Floor_{seed_coordinates[0][0]}.png"  # Use the first seed's x-coordinate in the filename
-        plt.savefig(filename, dpi=300, bbox_inches="tight")  # Save with high resolution and tight bounding box
+        _draw_doors(ax, output_array, corridor_tone)
+        _add_room_type_legend(ax)
+    
+    # === 2) Plot seeds with dedicated legend ===
+    if seed_coordinates:
+        _plot_seed_points(ax, seed_coordinates)
+    
+    # === 3) Finalize plot ===
+    ax.axis("off")
+    if save and seed_coordinates:
+        first_x = seed_coordinates[0][0]
+        plt.savefig(f"Floor_{first_x}.png", dpi=300, bbox_inches="tight")
     plt.show()
+    plt.close()
 
-    plt.close()  # Close the figure to free up memory
+# --------------------- Helper Functions ---------------------
+def _draw_doors(ax, output_array, corridor_tone):
+    """Identifies door pixels and draws swing arcs for horizontal/vertical doors."""
+    DOOR_COLOR = (128, 128, 64)
+    ys, xs = np.where(np.all(output_array == DOOR_COLOR, axis=-1))
+    
+    # Process horizontal doors
+    for y in np.unique(ys):
+        row_xs = np.sort(xs[ys == y])
+        runs = np.split(row_xs, np.where(np.diff(row_xs) != 1)[0] + 1)
+        for run in runs:
+            if 2 <= len(run) <= 4:
+                _draw_door_wedge(ax, run, y, corridor_tone, output_array, horizontal=True)
+    
+    # Process vertical doors
+    for x in np.unique(xs):
+        col_ys = np.sort(ys[xs == x])
+        runs = np.split(col_ys, np.where(np.diff(col_ys) != 1)[0] + 1)
+        for run in runs:
+            if 2 <= len(run) <= 4:
+                _draw_door_wedge(ax, run, x, corridor_tone, output_array, horizontal=False)
 
-import matplotlib.pyplot as plt
-from matplotlib.patches import Patch
-from matplotlib.colors import ListedColormap
-from matplotlib import rcParams
-from collections import deque
-import numpy as np
+def _draw_door_wedge(ax, run, fixed_coord, corridor_tone, output_array, horizontal):
+    """Draws a door wedge based on orientation and adjacent space."""
+    if horizontal:
+        x_start, x_end = run[0], run[-1]
+        radius = x_end - x_start + 2
+        y_above = fixed_coord - 1
+        if y_above >= 0:
+            pixels_above = output_array[y_above, x_start : x_end + 1]
+            corridor_mask = np.all(pixels_above == corridor_tone, axis=-1)
+            stairs_mask = np.all(pixels_above == (128, 64, 64), axis=-1)
+            above_free = np.any(~corridor_mask)
+            stairs_above = np.any(~stairs_mask)
+        else:
+            above_free = True
+            stairs_above = False
+            
+        if not above_free or not stairs_above:
+            theta1, theta2 = 90, 180
+            hinge_x, hinge_y = x_end + 1.5, fixed_coord - 0.5
+        else:
+            theta1, theta2 = 270, 360
+            hinge_x, hinge_y = x_start - 0.5, fixed_coord + 0.5
+    else:
+        y_start, y_end = run[0], run[-1]
+        radius = y_end - y_start + 2
+        x_left = fixed_coord - 1
+        if x_left >= 0:
+            pixels_left = output_array[y_start : y_end + 1, x_left]
+            corridor_mask = np.all(pixels_left == corridor_tone, axis=-1)
+            stairs_mask = np.all(pixels_left == (128, 64, 64), axis=-1)
+            left_free = np.any(~corridor_mask)
+            stairs_free = np.any(~stairs_mask)
+        else:
+            left_free = True
+            stairs_free = False
+            
+        if not left_free or not stairs_free:
+            theta1, theta2 = 0, 90
+            hinge_x, hinge_y = fixed_coord - 0.5, y_start - 0.5
+        else:
+            theta1, theta2 = 180, 270
+            hinge_x, hinge_y = fixed_coord + 0.5, y_end + 1
+    
+    wedge = Wedge(
+        (hinge_x, hinge_y), 
+        r=radius, 
+        theta1=theta1, 
+        theta2=theta2,
+        facecolor="gray", 
+        edgecolor="none", 
+        zorder=11
+    )
+    ax.add_patch(wedge)
+
+def _add_room_type_legend(ax, rooms = (False, False, False, False, False, False)):
+    """Adds a legend for room types outside the plot area."""
+    REVERSE_MAPPING = {
+        #"Door": (128, 128, 128),     # 4
+        "Window": (128, 255, 255),    # Window
+        "Wall": (0, 0, 0),      # Wall
+        #"Room separator": (180, 180, 180),   # Room separator
+        #"Stairs": (128, 64, 64),     # 20
+        #"Corridor": (204, 102, 178),   # 21
+        #"Unassigned": (255, 174, 201),
+    }
+    if rooms[0]:
+        REVERSE_MAPPING["Seed A"] = (255, 153, 153)  # Seed 1
+    if rooms[1]:
+        REVERSE_MAPPING["Seed B"] = (153, 204, 255)  # Seed 2
+    if rooms[2]:
+        REVERSE_MAPPING["Seed C"] = (153, 255, 153)  # Seed 3
+    if rooms[3]:
+        REVERSE_MAPPING["Seed D"] = (204, 153, 255)  # Seed 1
+    if rooms[4]:
+        REVERSE_MAPPING["Seed E"] = (255, 204, 153)  # Seed 2
+    if rooms[5]:
+        REVERSE_MAPPING["Seed F"] = (255, 255, 170)  # Seed 3  
+    patches = [
+        Patch(
+            facecolor=tuple(c/255 for c in color),
+            edgecolor="black",
+            label=str(room_type)
+        ) 
+        for room_type, color in REVERSE_MAPPING.items()
+    ]
+    ax.legend = ax.legend(
+    handles=patches,
+    loc="center left",
+    bbox_to_anchor=(0.95, 0.5),
+    frameon=True,
+    title="Legend",
+    fontsize=20,            # make label text 16 pt
+    title_fontsize=23,      # make title text 18 pt
+    markerscale=2.0,        # double the size of the patch/marker swatches
+    labelspacing=0.5,       # increase vertical space between entries
+    handlelength=3,         # length of the color‐patch box
+    borderpad=1.0           # padding inside legend box
+)
+
+def _plot_seed_points(ax, seed_coordinates):
+    """Plots seed points with labels and adds a legend."""
+    seen_labels = set()
+    for x, y, value in seed_coordinates:
+        label = f"Seed {value}"
+        ax.scatter(
+            x, y,
+            color="red",
+            s=50,
+            edgecolors="white",
+            label=label if label not in seen_labels else "_nolegend_",
+            zorder=12
+        )
+        ax.text(x, y, str(value), color="white", fontsize=12, 
+               ha="center", va="center", zorder=13)
+        seen_labels.add(label)
+    
+    ax.legend(loc="upper right", frameon=True, title="Seeds")
 
 def region_growing_simultaneous(grid, seeds):
     """
@@ -1019,6 +1072,7 @@ def int_to_color(result):
         19: (180, 180, 180),    # Room separator
         20: (128, 64, 64),      # Escalator/stairs
         21: (204, 102, 178),       # Corridor
+        255: (255, 174, 201),
         #128: (237, 28, 36),     # Seed 1 (red)
         #128: (255, 0, 0),       # Seed 1 (red)
         #129: (0, 162, 232),     # Seed 2 (blue)

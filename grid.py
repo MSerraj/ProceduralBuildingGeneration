@@ -414,36 +414,6 @@ class Wall(Enum):
                     se = new_grid[i+1][j+1]      if i < rows-1 and j < cols-1 else -1
                     ne = new_grid[i-1][j+1]      if i > 0 and j < cols-1      else -1
                     sw = new_grid[i+1][j-1]      if i < rows-1 and j > 0      else -1
-                    """
-
-                    northnorth = new_grid[i-3][j]     if i -3 > 0        else -1
-                    southsouth = new_grid[i+3][j]     if i < rows-3   else -1
-                    easteast  = new_grid[i][j+3]     if j < cols-3   else -1
-                    westwest  = new_grid[i][j-3]     if j-3 > 0        else -1
-                    northnorthnorth = new_grid[i-4][j]     if i-4 > 0        else -1
-                    southsouthsouth = new_grid[i+4][j]     if i < rows-4   else -1
-                    easteasteast  = new_grid[i][j+4]     if j < cols-4   else -1
-                    westwestwest  = new_grid[i][j-4]     if j -4 > 0        else -1
-                    
-                    if northnorth == 1 and southsouth == 1 and easteast == 1 and westwest == 1:
-                        values = [northnorthnorth, southsouthsouth, easteasteast, westwestwest]
-                        valid_values = [v for v in values if v != -1]
-                        if valid_values:
-            
-                            counts = Counter(valid_values)
-                            max_count = max(counts.values())
-                            candidates = [k for k, v in counts.items() if v == max_count]
-                            majority_val = next((v for v in values if v in candidates), candidates[0])
-                            new_grid[i][j] = majority_val
-                            # Remove corresponding walls
-                            if northnorthnorth == majority_val and i >= 1:
-                                new_grid[i-3][j] = majority_val
-                            if southsouthsouth == majority_val and i <= rows-2:
-                                new_grid[i+3][j] = majority_val
-                            if easteasteast == majority_val and j <= cols-2:
-                                new_grid[i][j+3] = majority_val
-                            if westwestwest == majority_val and j >= 1:
-                                new_grid[i][j-3] = majority_val"""
 
                     if north == 1 and south not in {0, 1, 21}:
                         new_grid[i][j] = south
@@ -508,25 +478,18 @@ class Wall(Enum):
                     queue.remove(room_id)
             
 
-                """
+        stairs_mask = (new_grid == 20)
+        struct2     = ndimage.generate_binary_structure(2, 2)
 
-        window_value=5 # PLACE WINDOWS
-        window_length=8
-        min_spacing=4
-        h, w = grid.shape
-        
-        walls = np.where(grid == 1).astype(np.uint8)
-        struct2 = ndimage.generate_binary_structure(2, 2)
-        outside_mask = (grid == 0)
-        outside_dilated = ndimage.binary_dilation(outside_mask, structure=struct2).astype(np.uint8)
-        outside_walls = outside_dilated & walls
-        inside_walls = outside_walls - walls
-        inside_walls_dilated = ndimage.binary_dilation(outside_mask, structure=struct2).astype(np.uint8)
-        possible_window_walls = outside_walls - inside_walls_dilated
-        for wall in outside_walls:
-            n_windows = len(wall)//3
-            new_grid[wall] == 5
-        """
+        coords = np.argwhere(stairs_mask)
+        r0, c0 = coords.min(axis=0)
+        r1, c1 = coords.max(axis=0) + 1 
+        patch = new_grid[r0:r1, c0:c1]
+        S = max(patch.shape)
+        square_patch = np.full((S, S), 20, dtype=new_grid.dtype)
+
+        new_grid[r0:r0+S, c0:c0+S] = square_patch
+
         return new_grid
 
     @staticmethod
@@ -554,173 +517,3 @@ class Wall(Enum):
 
     def height_tot(self):
         return len(self.floors) * self.floor_h
-    
-from matplotlib.collections import LineCollection
-from matplotlib.patches import Rectangle
-    
-class FloorPlanVisualizer:
-    def __init__(self, grid, cell_size=1.0):
-        self.grid      = grid
-        self.cell_size = cell_size
-        self.rows      = len(grid)
-        self.cols      = len(grid[0]) if self.rows else 0
-
-        plt.style.use('seaborn-white')
-        self.fig, self.ax = self._setup_plot()
-
-        self.colors = {
-            'ext_wall': '#2a2a2a',
-            'int_wall': '#4a4a4a',
-            'corridor': '#e8e4df',
-            'door':     '#ffffff',
-            'room_pal': ['#f7f4a8','#a8f7a4','#a4d4f7','#f7a4a4','#d4a4f7']
-        }
-        self.widths = {'ext':3.5, 'int':1.5}
-
-    def _setup_plot(self):
-        fig = plt.figure(figsize=(self.cols*0.6, self.rows*0.6))
-        ax  = fig.add_subplot(111)
-        ax.set_aspect('equal')
-        ax.invert_yaxis()
-        ax.set_xlim(-0.5, self.cols-0.5)
-        ax.set_ylim(self.rows-0.5, -0.5)
-        ax.set_facecolor(self.colors['corridor'])
-        ax.tick_params(axis='both', which='both', length=0)
-        plt.xticks(np.arange(self.cols))
-        plt.yticks(np.arange(self.rows))
-        ax.grid(False)
-        return fig, ax
-
-    def _extract_walls(self):
-        segs = {'ext_h':set(),'ext_v':set(),
-                'int_h':set(),'int_v':set()}
-        for i in range(self.rows):
-            for j in range(self.cols):
-                mask = self.grid[i][j].ins
-                on_edge = i in (0,self.rows-1) or j in (0,self.cols-1)
-                kind = 'ext' if on_edge else 'int'
-                def st(ax,p1,p2):
-                    segs[f"{kind}_{ax}"].add(tuple(sorted((p1,p2))))
-                # top
-                if all(mask[0][k]==1 for k in range(3)):  st('h',(j,i),(j+1,i))
-                # bottom
-                if all(mask[2][k]==1 for k in range(3)):  st('h',(j,i+1),(j+1,i+1))
-                # left
-                if all(mask[k][0]==1 for k in range(3)):  st('v',(j,i),(j,i+1))
-                # right
-                if all(mask[k][2]==1 for k in range(3)):  st('v',(j+1,i),(j+1,i+1))
-        return segs
-
-    def _draw_walls(self):
-        segs = self._extract_walls()
-        for kind, color, width in [
-            ('ext','#2a2a2a',3.5), ('int','#4a4a4a',1.5)
-        ]:
-            lines = [ [p1,p2] 
-                      for ax in ('h','v') 
-                      for p1,p2 in segs[f"{kind}_{ax}"] ]
-            lc = LineCollection(lines, colors=color,
-                                linewidths=width, capstyle='round',
-                                zorder=(4 if kind=='ext' else 3))
-            self.ax.add_collection(lc)
-
-    def _draw_doors(self):
-        # white rectangles at door cells
-        for i in range(self.rows):
-            for j in range(self.cols):
-                w = self.grid[i][j]
-                if w in (Wall.HORIZ_DOOR, Wall.VERT_DOOR):
-                    rect = Rectangle((j,i),1,1,
-                                     facecolor=self.colors['door'],
-                                     edgecolor='none',
-                                     zorder=5)
-                    self.ax.add_patch(rect)
-
-    def _draw_rooms(self):
-        visited = np.zeros((self.rows,self.cols),bool)
-        palette = self.colors['room_pal']
-        room_idx = 0
-
-        for i in range(self.rows):
-            for j in range(self.cols):
-                if not visited[i,j] and self.grid[i][j]==Wall.INSIDE:
-                    stack, cells = [(i,j)], []
-                    while stack:
-                        x,y = stack.pop()
-                        if (0<=x<self.rows and 0<=y<self.cols 
-                            and not visited[x,y]
-                            and self.grid[x][y]==Wall.INSIDE):
-                            visited[x,y]=True
-                            cells.append((x,y))
-                            stack += [(x+1,y),(x-1,y),(x,y+1),(x,y-1)]
-                    if not cells: continue
-                    rs = [c[0] for c in cells]; cs=[c[1] for c in cells]
-                    minr,maxr,minc,maxc = min(rs),max(rs),min(cs),max(cs)
-                    color = palette[room_idx % len(palette)]
-                    room_idx+=1
-                    rect = Rectangle((minc,minr),
-                                     maxc-minc+1, maxr-minr+1,
-                                     facecolor=color, alpha=0.4,
-                                     edgecolor='none', zorder=1)
-                    self.ax.add_patch(rect)
-
-    def _draw_dimensions(self):
-        # top
-        self.ax.annotate('', xy=(self.cols,0), xytext=(0,0),
-                         arrowprops=dict(arrowstyle='<->',color='gray'),
-                         zorder=6)
-        self.ax.text(self.cols/2,-0.2,f"{self.cols*self.cell_size:.1f}m",
-                     ha='center',va='center',
-                     backgroundcolor='white',fontsize=8,zorder=7)
-        # left
-        self.ax.annotate('', xy=(0,self.rows), xytext=(0,0),
-                         arrowprops=dict(arrowstyle='<->',color='gray'),
-                         zorder=6)
-        self.ax.text(-0.2,self.rows/2,f"{self.rows*self.cell_size:.1f}m",
-                     ha='center',va='center',rotation=90,
-                     backgroundcolor='white',fontsize=8,zorder=7)
-
-    def _draw_scale_bar(self):
-        length_cells = 5/self.cell_size
-        bar = Rectangle((1,self.rows-0.3),length_cells,0.15,
-                        facecolor='black',edgecolor='none',zorder=8)
-        self.ax.add_patch(bar)
-        self.ax.text(1+length_cells+0.2,self.rows-0.2,
-                     '5 m',ha='left',va='center',fontsize=8,zorder=9)
-
-    def plot_blueprint(self):
-        self._draw_rooms()
-        self._draw_walls()
-        self._draw_doors()
-        self._draw_dimensions()
-        self._draw_scale_bar()
-        self.ax.set_title('Architectural Blueprint', pad=20, fontsize=14)
-        plt.tight_layout()
-        plt.show()
-
-# -----------------------------------------------------------------------------#
-if __name__ == "__main__":
-    # --- example: border + two interior rooms + corridor + one door --- #
-    R, C = 8, 10
-    grid = [[Wall.EMPTY for _ in range(C)] for _ in range(R)]
-
-    # perimeter solid walls
-    for i in range(R):
-        for j in range(C):
-            if i in (0,R-1) or j in (0,C-1):
-                grid[i][j] = Wall.CROSS
-
-    # carve two rooms
-    for i in range(2,5):
-        for j in range(2,5):
-            grid[i][j] = Wall.INSIDE
-
-    for i in range(2,6):
-        for j in range(6,9):
-            grid[i][j] = Wall.INSIDE
-
-    # place one horizontal door
-    grid[4][5] = Wall.HORIZ_DOOR
-
-    viz = FloorPlanVisualizer(grid, cell_size=1.0)
-    viz.plot_blueprint()
